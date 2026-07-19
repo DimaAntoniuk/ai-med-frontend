@@ -14,6 +14,42 @@ export interface TranscriptDto {
   created_at: string;
 }
 
+/** History list item — text preview only; full text stays behind GET /transcripts/{id}. */
+export interface TranscriptSummaryDto {
+  id: string;
+  preview: string;
+  status: TranscriptStatus;
+  language: string | null;
+  doctor_count: number;
+  patient_count: number;
+  created_at: string;
+}
+
+export type SpeakerRole = "doctor" | "patient";
+
+export interface ParticipantDto {
+  key: string;
+  role: SpeakerRole | string;
+  index: number;
+  label: string;
+}
+
+export interface TurnDto {
+  participant: string;
+  /** Utterance boundaries preserved — render as paragraphs */
+  texts: string[];
+}
+
+/** Render-ready conversation preview: roster + chat-style turns. Empty turns = no speaker markers. */
+export interface ConversationDto {
+  transcript_id: string;
+  status: TranscriptStatus;
+  doctor_count: number;
+  patient_count: number;
+  participants: ParticipantDto[];
+  turns: TurnDto[];
+}
+
 export type RunStatus = "running" | "completed" | "failed" | "interrupted";
 
 export type BlockKind = "differential" | "gap_analysis" | "treatment";

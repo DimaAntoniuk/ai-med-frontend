@@ -1,14 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 import { ApiRequestError, api } from "../api/client";
-import type { RunStatus, TranscriptDto } from "../api/types";
+import type { ConversationDto, RunStatus, TranscriptDto } from "../api/types";
 import { Badge, Tag } from "../design/data/Badge";
 import { Card } from "../design/data/Card";
+import { Tabs } from "../design/data/Tabs";
 import { Alert } from "../design/feedback/Alert";
 import { Button } from "../design/forms/Button";
 import { Textarea } from "../design/forms/Textarea";
 import { AIBadge } from "../design/ai/AIBadge";
 import { WidgetView } from "../widgets";
 import { useT, type Translate } from "../i18n";
+import { ConversationPreview } from "./ConversationPreview";
 import { useRun } from "./useRun";
 import { TraceView } from "./TraceView";
 
@@ -29,6 +31,11 @@ function loadSession(): Session {
 
 function saveSession(session: Session) {
   sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
+}
+
+/** Point the consultation view at a transcript (e.g. one picked from history). */
+export function openTranscriptSession(transcriptId: string) {
+  saveSession({ transcriptId });
 }
 
 function runBadge(t: Translate, status: RunStatus | null) {
@@ -66,6 +73,8 @@ export function ConsultationScreen() {
   const t = useT();
   const [transcript, setTranscript] = useState<TranscriptDto | null>(null);
   const [text, setText] = useState("");
+  const [conversation, setConversation] = useState<ConversationDto | null>(null);
+  const [viewTab, setViewTab] = useState<"conversation" | "raw">("raw");
   const [runId, setRunId] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -87,6 +96,29 @@ export function ConsultationScreen() {
       })
       .catch(() => saveSession({}));
   }, []);
+
+  // The by-role parsed conversation follows the saved transcript text. When
+  // markers exist the chat preview becomes the default view.
+  useEffect(() => {
+    if (!transcript) {
+      setConversation(null);
+      return;
+    }
+    let cancelled = false;
+    api
+      .getConversation(transcript.id)
+      .then((dto) => {
+        if (cancelled) return;
+        setConversation(dto);
+        setViewTab(dto.turns.length > 0 ? "conversation" : "raw");
+      })
+      .catch(() => {
+        if (!cancelled) setConversation(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [transcript]);
 
   const guard = async (label: string, action: () => Promise<void>) => {
     setBusy(label);
@@ -230,7 +262,30 @@ export function ConsultationScreen() {
           }
         >
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {isDraft ? (
+            {conversation && conversation.turns.length > 0 && (
+              <Tabs
+                tabs={[
+                  {
+                    value: "conversation",
+                    label: t("review.tab.conversation"),
+                    count: conversation.turns.length,
+                  },
+                  { value: "raw", label: t("review.tab.raw") },
+                ]}
+                value={viewTab}
+                onChange={(v: string) => setViewTab(v as "conversation" | "raw")}
+              />
+            )}
+            {viewTab === "conversation" && conversation && conversation.turns.length > 0 ? (
+              <>
+                <ConversationPreview conversation={conversation} />
+                {isDraft && (
+                  <span style={{ fontSize: "var(--text-sm)", color: "var(--text-tertiary)" }}>
+                    {t("conversation.editNote")}
+                  </span>
+                )}
+              </>
+            ) : isDraft ? (
               <Textarea
                 hint={t("review.hint")}
                 rows={7}

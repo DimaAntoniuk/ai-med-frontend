@@ -31,7 +31,7 @@ export const en = {
   "intake.title": "New consultation",
   "intake.label": "Consultation transcript",
   "intake.hint":
-    "Paste the consultation text, or upload an audio recording. Audio is transcribed locally and never stored.",
+    "Paste the consultation text, or upload an audio recording. Mark speakers at line start — \"Doctor:\", \"Patient 2:\". Audio is transcribed locally and never stored.",
   "intake.placeholder": "Patient reports…",
   "intake.createDraft": "Create draft",
   "intake.creatingDraft": "Creating draft…",
@@ -50,6 +50,12 @@ export const en = {
   "review.starting": "Starting run…",
   "review.redactionNote": "Identifying details are redacted locally before MedAI sees the text.",
   "review.transcriptId": "transcript {id}",
+  "review.tab.conversation": "Conversation",
+  "review.tab.raw": "Full text",
+  "conversation.doctor": "Doctor",
+  "conversation.patient": "Patient",
+  "conversation.editNote":
+    "Edit in the full text tab — speaker lines like \"Doctor:\" or \"Patient 2:\" structure the conversation.",
 
   "run.id": "run {id}",
   "run.running": "Running",
@@ -123,9 +129,19 @@ export const en = {
   "reviewbar.by": "by {reviewer}",
 
   "nav.consultation": "Consultation",
+  "nav.history": "History",
   "nav.settings": "Settings",
   "profile.local": "Local session",
   "profile.role": "Clinician",
+
+  "history.title": "Consultation history",
+  "history.loading": "Loading history…",
+  "history.empty": "No consultations yet — start the first one in the Consultation view.",
+  "history.draft": "Draft",
+  "history.approved": "Approved",
+  "history.doctors": "Doctors: {n}",
+  "history.patients": "Patients: {n}",
+  "history.more": "Show more",
 
   "settings.title": "Settings",
   "settings.theme": "Theme",
@@ -167,7 +183,7 @@ export const uk: Record<MessageKey, string> = {
   "intake.title": "Нова консультація",
   "intake.label": "Стенограма консультації",
   "intake.hint":
-    "Вставте текст консультації або завантажте аудіозапис. Аудіо транскрибується локально і ніколи не зберігається.",
+    "Вставте текст консультації або завантажте аудіозапис. Позначайте мовців на початку рядка — \"Doctor:\", \"Patient 2:\". Аудіо транскрибується локально і ніколи не зберігається.",
   "intake.placeholder": "Пацієнт скаржиться на…",
   "intake.createDraft": "Створити чернетку",
   "intake.creatingDraft": "Створення чернетки…",
@@ -186,6 +202,12 @@ export const uk: Record<MessageKey, string> = {
   "review.starting": "Запуск…",
   "review.redactionNote": "Ідентифікуючі дані знеособлюються локально, перш ніж MedAI побачить текст.",
   "review.transcriptId": "стенограма {id}",
+  "review.tab.conversation": "Розмова",
+  "review.tab.raw": "Повний текст",
+  "conversation.doctor": "Лікар",
+  "conversation.patient": "Пацієнт",
+  "conversation.editNote":
+    "Редагуйте у вкладці «Повний текст» — рядки на кшталт \"Doctor:\" чи \"Patient 2:\" структурують розмову.",
 
   "run.id": "запуск {id}",
   "run.running": "Виконується",
@@ -258,9 +280,19 @@ export const uk: Record<MessageKey, string> = {
   "reviewbar.by": "— {reviewer}",
 
   "nav.consultation": "Консультація",
+  "nav.history": "Історія",
   "nav.settings": "Налаштування",
   "profile.local": "Локальний сеанс",
   "profile.role": "Клініцист",
+
+  "history.title": "Історія консультацій",
+  "history.loading": "Завантаження історії…",
+  "history.empty": "Консультацій ще немає — почніть першу на екрані «Консультація».",
+  "history.draft": "Чернетка",
+  "history.approved": "Підтверджено",
+  "history.doctors": "Лікарі: {n}",
+  "history.patients": "Пацієнти: {n}",
+  "history.more": "Показати ще",
 
   "settings.title": "Налаштування",
   "settings.theme": "Тема",

@@ -1,4 +1,10 @@
-import type { RunDto, TraceMessageDto, TranscriptDto } from "./types";
+import type {
+  ConversationDto,
+  RunDto,
+  TraceMessageDto,
+  TranscriptDto,
+  TranscriptSummaryDto,
+} from "./types";
 
 /** The POC backend allows the dev-server origin via its CORS_ORIGINS setting. */
 const BASE = import.meta.env.VITE_API_BASE ?? "http://localhost:8000";
@@ -86,6 +92,15 @@ export const api = {
 
   getTranscript(id: string): Promise<TranscriptDto> {
     return request(`/transcripts/${id}`);
+  },
+
+  /** Consultation history, newest first. */
+  listTranscripts(limit = 50, offset = 0): Promise<TranscriptSummaryDto[]> {
+    return request(`/transcripts?limit=${limit}&offset=${offset}`);
+  },
+
+  getConversation(id: string): Promise<ConversationDto> {
+    return request(`/transcripts/${id}/conversation`);
   },
 
   updateTranscript(id: string, text: string): Promise<TranscriptDto> {

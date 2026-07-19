@@ -2,13 +2,14 @@ import { useEffect, useState } from "react";
 import { UNAUTHORIZED_EVENT, api } from "./api/client";
 import { Badge } from "./design/data/Badge";
 import { Button } from "./design/forms/Button";
-import { ConsultationScreen } from "./app/ConsultationScreen";
+import { ConsultationScreen, openTranscriptSession } from "./app/ConsultationScreen";
+import { HistoryScreen } from "./app/HistoryScreen";
 import { SettingsScreen } from "./app/SettingsScreen";
 import { SignInScreen } from "./app/SignInScreen";
 import { useT } from "./i18n";
 
 type AuthState = "unknown" | "anonymous" | "authenticated";
-type View = "consultation" | "settings";
+type View = "consultation" | "history" | "settings";
 
 const PROFILE_KEY = "medai-profile-email";
 
@@ -131,6 +132,11 @@ export function App() {
           onClick={() => setView("consultation")}
         />
         <NavItem
+          label={t("nav.history")}
+          active={view === "history"}
+          onClick={() => setView("history")}
+        />
+        <NavItem
           label={t("nav.settings")}
           active={view === "settings"}
           onClick={() => setView("settings")}
@@ -190,7 +196,18 @@ export function App() {
 
       <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", overflowY: "auto" }}>
         <main style={{ flex: 1, width: "100%", maxWidth: 860, margin: "0 auto", padding: "18px 24px 8px" }}>
-          {view === "consultation" ? <ConsultationScreen /> : <SettingsScreen />}
+          {view === "consultation" ? (
+            <ConsultationScreen />
+          ) : view === "history" ? (
+            <HistoryScreen
+              onOpen={(id) => {
+                openTranscriptSession(id);
+                setView("consultation");
+              }}
+            />
+          ) : (
+            <SettingsScreen />
+          )}
         </main>
         <footer
           style={{
