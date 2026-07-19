@@ -101,10 +101,26 @@ export function ConsultationScreen() {
     if (!session.transcriptId) return;
     api
       .getTranscript(session.transcriptId)
-      .then((dto) => {
+      .then(async (dto) => {
         setTranscript(dto);
         setText(dto.text);
-        if (session.runId) setRunId(session.runId);
+        if (session.runId) {
+          setRunId(session.runId);
+          return;
+        }
+        // No run in this tab's session (e.g. opened from history) — restore
+        // past results: a live run beats showing stale output, then the
+        // latest completed run, then whatever happened last (failure notice).
+        try {
+          const runs = await api.listRuns(dto.id);
+          const restored =
+            runs.find((r) => r.status === "running") ??
+            runs.find((r) => r.status === "completed") ??
+            runs[0];
+          if (restored) setRunId(restored.id);
+        } catch {
+          /* transcript view still works without run history */
+        }
       })
       .catch(() => saveSession({}));
   }, []);

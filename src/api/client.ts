@@ -119,6 +119,11 @@ export const api = {
     return postJson("/runs", { transcript_id: transcriptId });
   },
 
+  /** Run history for a consultation, newest first. Summaries only — `blocks` is always empty here. */
+  listRuns(transcriptId: string): Promise<RunDto[]> {
+    return request(`/transcripts/${transcriptId}/runs`);
+  },
+
   getRun(id: string): Promise<RunDto> {
     return request(`/runs/${id}`);
   },
