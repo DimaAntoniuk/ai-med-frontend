@@ -31,7 +31,7 @@ export const en = {
   "intake.title": "New consultation",
   "intake.label": "Consultation transcript",
   "intake.hint":
-    "Paste the consultation text, upload an audio recording, or record one with the microphone. Mark speakers at line start — \"Doctor:\", \"Patient 2:\". Audio is transcribed locally and never stored.",
+    "Paste the consultation text, upload an audio recording, or record one with the microphone. Mark speakers at line start — \"Doctor:\", \"Patient 2:\" or \"Лікар:\", \"Пацієнтка:\". Audio is transcribed locally and never stored.",
   "intake.placeholder": "Patient reports…",
   "intake.createDraft": "Create draft",
   "intake.creatingDraft": "Creating draft…",
@@ -60,7 +60,7 @@ export const en = {
   "conversation.doctor": "Doctor",
   "conversation.patient": "Patient",
   "conversation.editNote":
-    "Edit in the full text tab — speaker lines like \"Doctor:\" or \"Patient 2:\" structure the conversation.",
+    "Edit in the full text tab — speaker lines like \"Doctor:\", \"Лікар 2:\" or \"Пацієнтка:\" structure the conversation.",
 
   "attribution.open": "Attribute speakers",
   "attribution.edit": "Edit attribution",
@@ -208,7 +208,7 @@ export const uk: Record<MessageKey, string> = {
   "intake.title": "Нова консультація",
   "intake.label": "Стенограма консультації",
   "intake.hint":
-    "Вставте текст консультації, завантажте аудіозапис або запишіть його мікрофоном. Позначайте мовців на початку рядка — \"Doctor:\", \"Patient 2:\". Аудіо транскрибується локально і ніколи не зберігається.",
+    "Вставте текст консультації, завантажте аудіозапис або запишіть його мікрофоном. Позначайте мовців на початку рядка — \"Лікар:\", \"Пацієнтка 2:\" (також \"Doctor:\", \"Patient:\"). Аудіо транскрибується локально і ніколи не зберігається.",
   "intake.placeholder": "Пацієнт скаржиться на…",
   "intake.createDraft": "Створити чернетку",
   "intake.creatingDraft": "Створення чернетки…",
@@ -237,7 +237,7 @@ export const uk: Record<MessageKey, string> = {
   "conversation.doctor": "Лікар",
   "conversation.patient": "Пацієнт",
   "conversation.editNote":
-    "Редагуйте у вкладці «Повний текст» — рядки на кшталт \"Doctor:\" чи \"Patient 2:\" структурують розмову.",
+    "Редагуйте у вкладці «Повний текст» — рядки на кшталт «Лікар:», «Лікарка 2:» чи «Пацієнтка:» структурують розмову.",
 
   "attribution.open": "Розмітити мовців",
   "attribution.edit": "Редагувати розмітку",
