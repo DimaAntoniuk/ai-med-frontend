@@ -1,0 +1,41 @@
+<!-- @dsCard group="Components" viewport="700x560" name="AI trust patterns" -->
+<!DOCTYPE html><html><head>
+<link rel="stylesheet" href="../../styles.css">
+<link rel="stylesheet" href="https://unpkg.com/lucide-static@0.462.0/font/lucide.css">
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone@7.26.4/babel.min.js"></script>
+<script src="../cardkit.js"></script>
+<style>body{background:#fff;padding:16px}</style>
+</head><body><div id="root"></div>
+<script type="text/babel" data-presets="react-classic">
+loadDS("../../").then((NS) => {
+const { Button, IconButton, Input, Select, Checkbox, RadioGroup, Switch, Textarea, Card, Table, Tabs, Badge, Tag, Alert, Dialog, Toast, Tooltip, PatientHeader, PatientListItem, AcuityPill, VitalCard, AIBadge, AIMessage, CitationChip, SourceRow, ConfidenceMeter, ReviewBar, AuditLogEntry } = NS;
+function Demo(){ return (
+<div style={{display:"flex",flexDirection:"column",gap:14}}>
+  <div style={{display:"flex",gap:10,alignItems:"center",flexWrap:"wrap"}}>
+    <AIBadge /><AIBadge compact label="Drafted by MedAI" />
+    <ConfidenceMeter level="high" /><ConfidenceMeter level="medium" /><ConfidenceMeter level="low" />
+    <CitationChip index={1} source="Lab panel 2026-07-12" onClick={()=>{}} />
+  </div>
+  <div style={{maxWidth:560,width:"100%",margin:"0 auto",display:"flex",flexDirection:"column",gap:12}}>
+    <AIMessage role="user">Summarize this patient's renal function.</AIMessage>
+    <AIMessage confidence="medium" time="09:41" footer={<div>
+      <SourceRow index={1} source="Comprehensive metabolic panel" detail="eGFR 52 mL/min/1.73m²" time="2026-07-12" />
+      <SourceRow index={2} source="Visit note — Dr. Lindqvist" detail="Diuretic dose increase" time="2026-06-28" />
+    </div>}>
+      eGFR has declined 18% over the last 3 months <CitationChip index={1} source="Metabolic panel" onClick={()=>{}} />, likely related to the recent diuretic adjustment <CitationChip index={2} source="Visit note 06-28" onClick={()=>{}} />. Consider a renal panel recheck within 2 weeks.
+    </AIMessage>
+  </div>
+  <div style={{maxWidth:560,width:"100%",margin:"0 auto",display:"flex",flexDirection:"column",gap:8}}>
+    <ReviewBar onApprove={()=>{}} onEdit={()=>{}} onReject={()=>{}} />
+    <ReviewBar status="approved" reviewer="Dr. Lindqvist" time="09:44" />
+  </div>
+  <div style={{maxWidth:560,width:"100%",margin:"0 auto"}}>
+    <AuditLogEntry kind="ai" actor="MedAI" action="drafted visit summary" target="M. Okafor" time="09:41:07" id="EV-88213" />
+    <AuditLogEntry kind="approve" actor="Dr. Lindqvist" action="approved & signed the summary" time="09:44:52" id="EV-88214" last />
+  </div>
+</div>); }
+ReactDOM.createRoot(document.getElementById("root")).render(<Demo/>);
+});
+</script></body></html>

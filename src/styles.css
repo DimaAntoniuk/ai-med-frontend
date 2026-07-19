@@ -1,0 +1,12 @@
+@import "./design/tokens/fonts.css";
+@import "./design/tokens/colors.css";
+@import "./design/tokens/typography.css";
+@import "./design/tokens/spacing.css";
+@import "./design/tokens/elevation.css";
+@import "./design/tokens/base.css";
+
+html,
+body,
+#root {
+  height: 100%;
+}

@@ -1,0 +1,25 @@
+<!-- @dsCard group="MedAI POC" viewport="1280x800" subtitle="Chat-first clinical assistant — simplified POC" name="POC — Assistant" -->
+<!-- @startingPoint section="Screens" subtitle="Chat-first MedAI assistant (POC)" viewport="1280x800" -->
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>MedAI — POC assistant</title>
+<link rel="stylesheet" href="../../styles.css">
+<link rel="stylesheet" href="https://unpkg.com/lucide-static@0.462.0/font/lucide.css">
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone@7.26.4/babel.min.js"></script>
+<script src="../../components/cardkit.js"></script>
+</head>
+<body style="margin:0">
+<div id="root"></div>
+<script type="text/babel" data-presets="react-classic">
+(async () => {
+  const NS = await loadDS("../../");
+  const { ChatScreen } = await loadJSX("./ChatScreen.jsx", NS);
+  ReactDOM.createRoot(document.getElementById("root")).render(<ChatScreen />);
+})();
+</script>
+</body>
+</html>

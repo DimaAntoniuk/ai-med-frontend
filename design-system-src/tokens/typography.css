@@ -1,0 +1,22 @@
+:root {
+  --font-ui: "Public Sans", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "IBM Plex Mono", "SF Mono", Consolas, monospace; /* MRNs, dosages, timestamps, IDs */
+
+  --text-xs: 11px;   /* mono metadata, timestamps */
+  --text-sm: 12.5px; /* secondary text, table cells, labels */
+  --text-base: 14px; /* body, controls */
+  --text-md: 16px;   /* card titles, patient names */
+  --text-lg: 19px;   /* section headers */
+  --text-xl: 24px;   /* page titles */
+  --text-2xl: 32px;  /* dashboard KPIs */
+
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+
+  --leading-tight: 1.25;
+  --leading-normal: 1.5;
+
+  --tracking-caps: 0.06em; /* uppercase overline labels */
+}

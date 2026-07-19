@@ -1,0 +1,38 @@
+<!-- @dsCard group="Components" viewport="700x420" name="Healthcare patterns" -->
+<!DOCTYPE html><html><head>
+<link rel="stylesheet" href="../../styles.css">
+<link rel="stylesheet" href="https://unpkg.com/lucide-static@0.462.0/font/lucide.css">
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone@7.26.4/babel.min.js"></script>
+<script src="../cardkit.js"></script>
+<style>body{background:#fff;padding:16px}</style>
+</head><body><div id="root"></div>
+<script type="text/babel" data-presets="react-classic">
+loadDS("../../").then((NS) => {
+const { Button, IconButton, Input, Select, Checkbox, RadioGroup, Switch, Textarea, Card, Table, Tabs, Badge, Tag, Alert, Dialog, Toast, Tooltip, PatientHeader, PatientListItem, AcuityPill, VitalCard, AIBadge, AIMessage, CitationChip, SourceRow, ConfidenceMeter, ReviewBar, AuditLogEntry } = NS;
+function Demo(){ return (
+<div style={{display:"flex",flexDirection:"column",gap:14}}>
+  <PatientHeader name="Margaret Okafor" mrn="4471-0923" dob="1961-03-14" age={65} sex="F" acuity="high"
+    allergies={["Penicillin","Sulfa"]} pcp="Dr. Lindqvist"
+    meta={[{label:"Visit",value:"Follow-up"}]}
+    actions={<Button size="sm" variant="secondary">Open chart</Button>} />
+  <div style={{display:"flex",gap:10}}>
+    <VitalCard label="Blood pressure" value="152/94" unit="mmHg" trend="up" status="warning" source="Device" time="09:41" />
+    <VitalCard label="Heart rate" value="78" unit="bpm" trend="flat" source="Device" time="09:41" />
+    <VitalCard label="SpO₂" value="88" unit="%" trend="down" status="critical" source="Nurse entry" time="09:32" />
+    <VitalCard label="Temp" value="36.8" unit="°C" source="Nurse entry" time="09:32" />
+  </div>
+  <div style={{display:"flex",gap:14,alignItems:"flex-start"}}>
+    <div style={{width:300,border:"1px solid var(--border-subtle)",borderRadius:"var(--r-lg)",overflow:"hidden",background:"var(--surface-card)"}}>
+      <PatientListItem name="Margaret Okafor" mrn="4471-0923" age={65} sex="F" acuity="high" reason="Dyspnea follow-up" time="09:30" selected onClick={()=>{}} />
+      <PatientListItem name="Jonas Weber" mrn="4471-1188" age={54} sex="M" acuity="low" reason="Annual physical" time="10:15" onClick={()=>{}} />
+    </div>
+    <div style={{display:"flex",gap:8,flexWrap:"wrap",paddingTop:4}}>
+      <AcuityPill level="low" /><AcuityPill level="moderate" /><AcuityPill level="high" /><AcuityPill level="critical" />
+    </div>
+  </div>
+</div>); }
+ReactDOM.createRoot(document.getElementById("root")).render(<Demo/>);
+});
+</script></body></html>

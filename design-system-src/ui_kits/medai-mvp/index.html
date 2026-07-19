@@ -1,0 +1,55 @@
+<!-- @dsCard group="MedAI MVP" viewport="1440x900" subtitle="Full clinical workspace + admin oversight — MVP" name="MVP — Workspace" -->
+<!-- @startingPoint section="Screens" subtitle="MedAI MVP: clinical workspace + admin oversight" viewport="1440x900" -->
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>MedAI — MVP workspace</title>
+<link rel="stylesheet" href="../../styles.css">
+<link rel="stylesheet" href="https://unpkg.com/lucide-static@0.462.0/font/lucide.css">
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone@7.26.4/babel.min.js"></script>
+<script src="../../components/cardkit.js"></script>
+</head>
+<body style="margin:0">
+<div id="root"></div>
+<script type="text/babel" data-presets="react-classic">
+(async () => {
+  const NS = await loadDS("../../");
+  const { DoctorWorkspace } = await loadJSX("./DoctorWorkspace.jsx", NS);
+  const { AdminDashboard } = await loadJSX("./AdminDashboard.jsx", NS);
+  const { Badge } = NS;
+  const { useState } = React;
+
+  function App() {
+    const [role, setRole] = useState("doctor");
+    return (
+      <div style={{ height: "100vh", display: "flex", flexDirection: "column", background: "var(--surface-page)", fontFamily: "var(--font-ui)", minWidth: 1280 }}>
+        <header style={{ display: "flex", alignItems: "center", gap: 16, padding: "0 20px", height: 54, background: "var(--surface-card)", borderBottom: "1px solid var(--border-subtle)", flexShrink: 0 }}>
+          <span style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-0.02em" }}>Med<span style={{ color: "var(--ai)" }}>AI</span></span>
+          <nav style={{ display: "flex", gap: 4, marginLeft: 8 }}>
+            {[["doctor", "Doctor workspace"], ["admin", "Admin oversight"]].map(([v, l]) => (
+              <button key={v} onClick={() => setRole(v)} style={{
+                appearance: "none", cursor: "pointer", border: "none",
+                background: role === v ? "var(--primary-tint)" : "transparent",
+                color: role === v ? "var(--primary)" : "var(--text-secondary)",
+                fontWeight: role === v ? 600 : 400, fontFamily: "var(--font-ui)",
+                fontSize: "var(--text-base)", padding: "7px 14px", borderRadius: "var(--r-md)",
+              }}>{l}</button>
+            ))}
+          </nav>
+          <span style={{ flex: 1 }} />
+          <Badge tone="ai">MVP</Badge>
+          <span style={{ fontSize: "var(--text-sm)", color: "var(--text-secondary)" }}>{role === "doctor" ? "Dr. Anna Lindqvist" : "C. Baumann — Clinic admin"}</span>
+          <span style={{ width: 32, height: 32, borderRadius: "50%", background: "var(--primary-tint)", color: "var(--primary)", display: "inline-flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 13 }}>{role === "doctor" ? "AL" : "CB"}</span>
+        </header>
+        {role === "doctor" ? <DoctorWorkspace /> : <AdminDashboard />}
+      </div>
+    );
+  }
+  ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+})();
+</script>
+</body>
+</html>
