@@ -11,6 +11,7 @@ import { AIBadge } from "../design/ai/AIBadge";
 import { useT, type Translate } from "../i18n";
 import { AttributionEditor } from "./AttributionEditor";
 import { ConversationPreview } from "./ConversationPreview";
+import { RecordButton } from "./RecordButton";
 import { ResultsPanel } from "./ResultsPanel";
 import { useRun } from "./useRun";
 import { TraceView } from "./TraceView";
@@ -250,14 +251,29 @@ export function ConsultationScreen() {
       {!transcript && (
         <Card title={t("intake.title")}>
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            <Textarea
-              label={t("intake.label")}
-              hint={t("intake.hint")}
-              rows={9}
-              placeholder={t("intake.placeholder")}
-              value={text}
-              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setText(e.target.value)}
-            />
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              {/* The mic anchors to the textarea's corner, so the hint lives
+                  outside the field; right padding keeps text clear of it. */}
+              <div style={{ position: "relative" }}>
+                <Textarea
+                  label={t("intake.label")}
+                  rows={9}
+                  placeholder={t("intake.placeholder")}
+                  value={text}
+                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setText(e.target.value)}
+                  style={{ paddingRight: 52 }}
+                />
+                <RecordButton
+                  disabled={busy !== null}
+                  onRecorded={uploadAudio}
+                  onError={(message) => setError(message)}
+                  style={{ position: "absolute", right: 10, bottom: 10 }}
+                />
+              </div>
+              <span style={{ fontSize: "var(--text-sm)", color: "var(--text-tertiary)" }}>
+                {t("intake.hint")}
+              </span>
+            </div>
             <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
               <Button onClick={createDraft} disabled={!text.trim() || busy !== null}>
                 {busy === "create" ? t("intake.creatingDraft") : t("intake.createDraft")}

@@ -31,12 +31,17 @@ export const en = {
   "intake.title": "New consultation",
   "intake.label": "Consultation transcript",
   "intake.hint":
-    "Paste the consultation text, or upload an audio recording. Mark speakers at line start — \"Doctor:\", \"Patient 2:\". Audio is transcribed locally and never stored.",
+    "Paste the consultation text, upload an audio recording, or record one with the microphone. Mark speakers at line start — \"Doctor:\", \"Patient 2:\". Audio is transcribed locally and never stored.",
   "intake.placeholder": "Patient reports…",
   "intake.createDraft": "Create draft",
   "intake.creatingDraft": "Creating draft…",
   "intake.uploadAudio": "Upload audio",
   "intake.transcribing": "Transcribing audio…",
+
+  "mic.start": "Record audio",
+  "mic.stop": "Stop recording",
+  "mic.denied": "Microphone access was denied — allow it in the browser settings.",
+  "mic.unsupported": "Audio recording is not supported in this browser.",
 
   "review.title": "Consultation transcript",
   "review.draftBadge": "Draft — awaiting review",
@@ -203,12 +208,17 @@ export const uk: Record<MessageKey, string> = {
   "intake.title": "Нова консультація",
   "intake.label": "Стенограма консультації",
   "intake.hint":
-    "Вставте текст консультації або завантажте аудіозапис. Позначайте мовців на початку рядка — \"Doctor:\", \"Patient 2:\". Аудіо транскрибується локально і ніколи не зберігається.",
+    "Вставте текст консультації, завантажте аудіозапис або запишіть його мікрофоном. Позначайте мовців на початку рядка — \"Doctor:\", \"Patient 2:\". Аудіо транскрибується локально і ніколи не зберігається.",
   "intake.placeholder": "Пацієнт скаржиться на…",
   "intake.createDraft": "Створити чернетку",
   "intake.creatingDraft": "Створення чернетки…",
   "intake.uploadAudio": "Завантажити аудіо",
   "intake.transcribing": "Транскрибування аудіо…",
+
+  "mic.start": "Записати аудіо",
+  "mic.stop": "Зупинити запис",
+  "mic.denied": "Доступ до мікрофона заборонено — дозвольте його в налаштуваннях браузера.",
+  "mic.unsupported": "Запис аудіо не підтримується в цьому браузері.",
 
   "review.title": "Стенограма консультації",
   "review.draftBadge": "Чернетка — очікує перегляду",
