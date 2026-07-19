@@ -112,6 +112,13 @@ export const en = {
   "trace.returned": "returned",
   "trace.completed": "completed the run",
 
+  "results.title": "MedAI results",
+  "results.show": "Show results",
+  "results.hide": "Collapse",
+  "results.streaming": "The analysis is still producing blocks…",
+  "results.unbiasedNote":
+    "Contents are hidden so they do not influence your own conclusion first — open when you are ready.",
+
   "widget.aiGenerated": "AI-generated",
   "widget.sources": "Sources",
   "widget.unknown": "Unrecognized block — {type}",
@@ -275,6 +282,13 @@ export const uk: Record<MessageKey, string> = {
   "trace.called": "викликав {tool}",
   "trace.returned": "повернув результат",
   "trace.completed": "завершив запуск",
+
+  "results.title": "Результати MedAI",
+  "results.show": "Показати результати",
+  "results.hide": "Згорнути",
+  "results.streaming": "Аналіз ще формує блоки…",
+  "results.unbiasedNote":
+    "Вміст приховано, щоб спершу не впливати на ваш власний висновок. Відкрийте, коли будете готові.",
 
   "widget.aiGenerated": "Згенеровано ШІ",
   "widget.sources": "Джерела",

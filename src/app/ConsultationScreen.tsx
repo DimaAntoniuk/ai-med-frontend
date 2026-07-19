@@ -8,10 +8,10 @@ import { Alert } from "../design/feedback/Alert";
 import { Button } from "../design/forms/Button";
 import { Textarea } from "../design/forms/Textarea";
 import { AIBadge } from "../design/ai/AIBadge";
-import { WidgetView } from "../widgets";
 import { useT, type Translate } from "../i18n";
 import { AttributionEditor } from "./AttributionEditor";
 import { ConversationPreview } from "./ConversationPreview";
+import { ResultsPanel } from "./ResultsPanel";
 import { useRun } from "./useRun";
 import { TraceView } from "./TraceView";
 
@@ -457,9 +457,7 @@ export function ConsultationScreen() {
             </div>
           )}
 
-          {run.widgets.map((descriptor) => (
-            <WidgetView key={descriptor.id} descriptor={descriptor} />
-          ))}
+          <ResultsPanel descriptors={run.widgets} running={run.status === "running"} />
 
           {run.status === "failed" && (
             <Alert tone="critical" title={t("run.failedTitle")}>

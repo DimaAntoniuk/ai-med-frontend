@@ -14,6 +14,7 @@ import {
   asStr,
   asStrArray,
 } from "./parts";
+import { loadReview, saveReview, type StoredReview } from "./reviewStore";
 
 function BulletList({ items }: { items: string[] }) {
   return (
@@ -132,25 +133,35 @@ export function GapAnalysisWidget({ payload }: WidgetProps) {
 
 /**
  * Treatment plan — the actionable block, so it is gated by ReviewBar.
- * Review state is client-side only in this POC (no accept endpoint yet).
+ * Decisions persist in localStorage keyed by block id (no BE endpoint yet),
+ * so they survive reloads and reopening from history on this browser.
  */
-export function TreatmentWidget({ payload }: WidgetProps) {
+export function TreatmentWidget({ payload, descriptor }: WidgetProps) {
   const { t, locale } = useSettings();
   const data = payload as Record<string, unknown>;
-  const [review, setReview] = useState<"pending" | "approved" | "rejected">("pending");
+  const [review, setReviewState] = useState<StoredReview | null>(() => loadReview(descriptor.id));
+  const decide = (status: StoredReview["status"]) =>
+    setReviewState(saveReview(descriptor.id, status));
   const planType = asStr(data?.plan_type, "preliminary");
   const steps = asStrArray(data?.steps);
   const rationale = asStr(data?.rationale);
-  const reviewedAt = new Date().toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" });
+  const reviewedAt = review
+    ? new Date(review.at).toLocaleString(locale, {
+        day: "numeric",
+        month: "short",
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    : "";
   return (
     <AIBlockCard
       title={t("widget.treatment.title")}
       footer={
-        review === "pending" ? (
+        review === null ? (
           <ReviewBar
             approveLabel={t("widget.treatment.approve")}
-            onApprove={() => setReview("approved")}
-            onReject={() => setReview("rejected")}
+            onApprove={() => decide("approved")}
+            onReject={() => decide("rejected")}
             labels={{
               pending: t("reviewbar.pending"),
               reject: t("reviewbar.reject"),
@@ -159,7 +170,7 @@ export function TreatmentWidget({ payload }: WidgetProps) {
           />
         ) : (
           <ReviewBar
-            status={review}
+            status={review.status}
             reviewer={t("widget.treatment.clinician")}
             time={reviewedAt}
             labels={{
