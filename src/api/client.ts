@@ -4,6 +4,7 @@ import type {
   TraceMessageDto,
   TranscriptDto,
   TranscriptSummaryDto,
+  UtteranceDto,
 } from "./types";
 
 /** The POC backend allows the dev-server origin via its CORS_ORIGINS setting. */
@@ -101,6 +102,32 @@ export const api = {
 
   getConversation(id: string): Promise<ConversationDto> {
     return request(`/transcripts/${id}/conversation`);
+  },
+
+  getUtterances(id: string): Promise<UtteranceDto[]> {
+    return request(`/transcripts/${id}/utterances`);
+  },
+
+  /**
+   * Full replacement of the speaker structure. Side effect: the canonical raw
+   * text is regenerated from these lines — unattributed text is dropped.
+   */
+  putUtterances(id: string, utterances: UtteranceDto[]): Promise<TranscriptDto> {
+    return request(`/transcripts/${id}/utterances`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ utterances }),
+    });
+  },
+
+  /** Discard the structure; raw text stays untouched. */
+  deleteUtterances(id: string): Promise<TranscriptDto> {
+    return request(`/transcripts/${id}/utterances`, { method: "DELETE" });
+  },
+
+  /** Re-derive the structure from the current raw text's markers. */
+  parseUtterances(id: string): Promise<TranscriptDto> {
+    return postJson(`/transcripts/${id}/utterances/parse`);
   },
 
   updateTranscript(id: string, text: string): Promise<TranscriptDto> {

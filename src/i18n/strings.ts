@@ -57,6 +57,21 @@ export const en = {
   "conversation.editNote":
     "Edit in the full text tab — speaker lines like \"Doctor:\" or \"Patient 2:\" structure the conversation.",
 
+  "attribution.open": "Attribute speakers",
+  "attribution.edit": "Edit attribution",
+  "attribution.hint":
+    "Assign each line to a speaker. Merge a line into the previous one (⤴) or remove it, then save.",
+  "attribution.warningTitle": "Saving rebuilds the transcript",
+  "attribution.warning":
+    "The transcript text is regenerated from these lines with speaker markers — text removed here is dropped.",
+  "attribution.save": "Save attribution",
+  "attribution.saving": "Saving…",
+  "attribution.cancel": "Cancel",
+  "attribution.discard": "Discard structure",
+  "attribution.add": "Add utterance",
+  "attribution.merge": "Merge into previous line",
+  "attribution.remove": "Remove line",
+
   "run.id": "run {id}",
   "run.running": "Running",
   "run.completed": "Completed",
@@ -206,6 +221,21 @@ export const uk: Record<MessageKey, string> = {
   "conversation.patient": "Пацієнт",
   "conversation.editNote":
     "Редагуйте у вкладці «Повний текст» — рядки на кшталт \"Doctor:\" чи \"Patient 2:\" структурують розмову.",
+
+  "attribution.open": "Розмітити мовців",
+  "attribution.edit": "Редагувати розмітку",
+  "attribution.hint":
+    "Призначте кожному рядку мовця. Об'єднайте рядок із попереднім (⤴) або видаліть його, потім збережіть.",
+  "attribution.warningTitle": "Збереження перебудує стенограму",
+  "attribution.warning":
+    "Текст стенограми буде згенеровано заново з цих рядків із позначками мовців — вилучений тут текст буде втрачено.",
+  "attribution.save": "Зберегти розмітку",
+  "attribution.saving": "Збереження…",
+  "attribution.cancel": "Скасувати",
+  "attribution.discard": "Скинути структуру",
+  "attribution.add": "Додати репліку",
+  "attribution.merge": "Об'єднати з попереднім рядком",
+  "attribution.remove": "Видалити рядок",
 
   "run.id": "запуск {id}",
   "run.running": "Виконується",

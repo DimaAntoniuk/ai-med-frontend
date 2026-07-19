@@ -6,9 +6,18 @@
 
 export type TranscriptStatus = "draft" | "approved";
 
+/** One speaker-attributed statement; `speaker` is a 1-based index within the role. */
+export interface UtteranceDto {
+  role: SpeakerRole;
+  speaker: number;
+  text: string;
+}
+
 export interface TranscriptDto {
   id: string;
   text: string;
+  /** Structured speaker attribution; [] for markerless text. */
+  utterances?: UtteranceDto[];
   status: TranscriptStatus;
   language: string | null;
   created_at: string;

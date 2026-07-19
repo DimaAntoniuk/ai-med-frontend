@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { ApiRequestError, api } from "../api/client";
-import type { ConversationDto, RunStatus, TranscriptDto } from "../api/types";
+import type { ConversationDto, RunStatus, TranscriptDto, UtteranceDto } from "../api/types";
 import { Badge, Tag } from "../design/data/Badge";
 import { Card } from "../design/data/Card";
 import { Tabs } from "../design/data/Tabs";
@@ -10,6 +10,7 @@ import { Textarea } from "../design/forms/Textarea";
 import { AIBadge } from "../design/ai/AIBadge";
 import { WidgetView } from "../widgets";
 import { useT, type Translate } from "../i18n";
+import { AttributionEditor } from "./AttributionEditor";
 import { ConversationPreview } from "./ConversationPreview";
 import { useRun } from "./useRun";
 import { TraceView } from "./TraceView";
@@ -87,6 +88,7 @@ export function ConsultationScreen() {
   const [text, setText] = useState("");
   const [conversation, setConversation] = useState<ConversationDto | null>(null);
   const [viewTab, setViewTab] = useState<"conversation" | "raw">("raw");
+  const [attributing, setAttributing] = useState(false);
   const [runId, setRunId] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -174,6 +176,8 @@ export function ConsultationScreen() {
       setTranscript(dto);
       setText(dto.text);
       saveSession({ transcriptId: dto.id });
+      // ASR output is markerless — go straight to speaker attribution.
+      if ((dto.utterances?.length ?? 0) === 0) setAttributing(true);
     });
 
   const saveEdits = () =>
@@ -182,6 +186,24 @@ export function ConsultationScreen() {
       const dto = await api.updateTranscript(transcript.id, text.trim());
       setTranscript(dto);
       setText(dto.text);
+    });
+
+  const saveAttribution = (utterances: UtteranceDto[]) =>
+    guard("attribute", async () => {
+      if (!transcript) return;
+      const dto = await api.putUtterances(transcript.id, utterances);
+      setTranscript(dto);
+      setText(dto.text);
+      setAttributing(false);
+    });
+
+  const discardAttribution = () =>
+    guard("attribute", async () => {
+      if (!transcript) return;
+      const dto = await api.deleteUtterances(transcript.id);
+      setTranscript(dto);
+      setText(dto.text);
+      setAttributing(false);
     });
 
   const approve = () =>
@@ -289,6 +311,16 @@ export function ConsultationScreen() {
             </span>
           }
         >
+          {isDraft && attributing ? (
+            <AttributionEditor
+              rawText={text}
+              existing={transcript.utterances ?? []}
+              busy={busy === "attribute"}
+              onSave={saveAttribution}
+              onDiscard={(transcript.utterances?.length ?? 0) > 0 ? discardAttribution : undefined}
+              onCancel={() => setAttributing(false)}
+            />
+          ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {conversation && conversation.turns.length > 0 && (
               <Tabs
@@ -308,8 +340,13 @@ export function ConsultationScreen() {
               <>
                 <ConversationPreview conversation={conversation} />
                 {isDraft && (
-                  <span style={{ fontSize: "var(--text-sm)", color: "var(--text-tertiary)" }}>
-                    {t("conversation.editNote")}
+                  <span style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+                    <span style={{ fontSize: "var(--text-sm)", color: "var(--text-tertiary)" }}>
+                      {t("conversation.editNote")}
+                    </span>
+                    <Button size="sm" variant="ghost" onClick={() => setAttributing(true)}>
+                      {t("attribution.edit")}
+                    </Button>
                   </span>
                 )}
               </>
@@ -340,6 +377,11 @@ export function ConsultationScreen() {
                   <Button onClick={approve} disabled={busy !== null || !text.trim()}>
                     {busy === "approve" ? t("review.approving") : t("review.approve")}
                   </Button>
+                  {(conversation?.turns.length ?? 0) === 0 && text.trim() && (
+                    <Button variant="secondary" onClick={() => setAttributing(true)} disabled={busy !== null}>
+                      {t("attribution.open")}
+                    </Button>
+                  )}
                   {dirty && (
                     <Button variant="secondary" onClick={saveEdits} disabled={busy !== null}>
                       {busy === "save" ? t("review.saving") : t("review.save")}
@@ -359,6 +401,7 @@ export function ConsultationScreen() {
               )}
             </div>
           </div>
+          )}
         </Card>
       )}
 
