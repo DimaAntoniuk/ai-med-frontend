@@ -4,6 +4,7 @@ import type { TraceMessageDto } from "../api/types";
 import { Card } from "../design/data/Card";
 import { Button } from "../design/forms/Button";
 import { AuditLogEntry } from "../design/ai/AuditLogEntry";
+import { useSettings, type Translate } from "../i18n";
 
 function clip(value: unknown, max = 160): string {
   const text = typeof value === "string" ? value : JSON.stringify(value);
@@ -11,8 +12,8 @@ function clip(value: unknown, max = 160): string {
   return text.length > max ? `${text.slice(0, max)}…` : text;
 }
 
-function entryProps(message: TraceMessageDto) {
-  const time = new Date(message.created_at).toLocaleTimeString([], {
+function entryProps(t: Translate, locale: string, message: TraceMessageDto) {
+  const time = new Date(message.created_at).toLocaleTimeString(locale, {
     hour: "2-digit",
     minute: "2-digit",
     second: "2-digit",
@@ -24,7 +25,7 @@ function entryProps(message: TraceMessageDto) {
         ...base,
         kind: "ai" as const,
         actor: "MedAI",
-        action: `called ${String(message.payload.tool_name ?? "a tool")}`,
+        action: t("trace.called", { tool: String(message.payload.tool_name ?? "?") }),
         target: clip(message.payload.tool_kwargs),
       };
     case "tool_result":
@@ -32,7 +33,7 @@ function entryProps(message: TraceMessageDto) {
         ...base,
         kind: "system" as const,
         actor: String(message.payload.tool_name ?? "tool"),
-        action: "returned",
+        action: t("trace.returned"),
         target: clip(message.payload.output),
       };
     case "agent_output":
@@ -40,7 +41,7 @@ function entryProps(message: TraceMessageDto) {
         ...base,
         kind: "ai" as const,
         actor: "MedAI",
-        action: "completed the run",
+        action: t("trace.completed"),
         target: clip(message.payload.text, 300),
       };
   }
@@ -48,6 +49,7 @@ function entryProps(message: TraceMessageDto) {
 
 /** Durable run history from GET /runs/{id}/trace — the trail admins observe. */
 export function TraceView({ runId }: { runId: string }) {
+  const { t, locale } = useSettings();
   const [messages, setMessages] = useState<TraceMessageDto[] | null>(null);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -70,32 +72,36 @@ export function TraceView({ runId }: { runId: string }) {
 
   return (
     <Card
-      title="Audit trail"
+      title={t("trace.title")}
       action={
         <Button size="sm" variant="secondary" onClick={toggle}>
-          {open ? "Hide audit trail" : "View audit trail"}
+          {open ? t("trace.hide") : t("trace.view")}
         </Button>
       }
     >
       {!open && (
         <span style={{ fontSize: "var(--text-sm)", color: "var(--text-tertiary)" }}>
-          Every tool call and result in this run is logged for oversight.
+          {t("trace.notice")}
         </span>
       )}
       {open && loading && (
         <span style={{ fontSize: "var(--text-sm)", color: "var(--text-tertiary)" }}>
-          Loading the trail…
+          {t("trace.loading")}
         </span>
       )}
       {open && !loading && messages && messages.length === 0 && (
         <span style={{ fontSize: "var(--text-sm)", color: "var(--text-tertiary)" }}>
-          No trace entries recorded for this run.
+          {t("trace.empty")}
         </span>
       )}
       {open && !loading && messages && messages.length > 0 && (
         <div style={{ display: "flex", flexDirection: "column" }}>
           {messages.map((message, i) => (
-            <AuditLogEntry key={message.id} {...entryProps(message)} last={i === messages.length - 1} />
+            <AuditLogEntry
+              key={message.id}
+              {...entryProps(t, locale, message)}
+              last={i === messages.length - 1}
+            />
           ))}
         </div>
       )}

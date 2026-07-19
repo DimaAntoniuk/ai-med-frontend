@@ -1,24 +1,29 @@
 :root {
-  /* ---- Neutrals (cool, slate-tinted) ---- */
+  /* Evidence-based clinical palette for Ukrainian medical staff (see PALETTE.md).
+     Low-distraction: white + cool neutrals dominate; blue is the interaction
+     colour, not wallpaper; saturated colour is reserved for status and risk.
+     Status colours must never stand alone — pair with an icon + explicit text. */
+
+  /* ---- Neutrals: cool blue-grey ramp anchored on the palette spec ---- */
   --n-white: #ffffff;
-  --n-25: oklch(0.985 0.003 264);
-  --n-50: oklch(0.972 0.004 264);
-  --n-100: oklch(0.950 0.005 264);
-  --n-200: oklch(0.910 0.007 264);
-  --n-300: oklch(0.845 0.009 264);
-  --n-400: oklch(0.700 0.014 264);
-  --n-500: oklch(0.580 0.016 264);
-  --n-600: oklch(0.470 0.018 264);
-  --n-700: oklch(0.370 0.020 264);
-  --n-800: oklch(0.280 0.020 264);
-  --n-900: oklch(0.210 0.018 264);
+  --n-25: #fbfcfd;
+  --n-50: #f8fafc;   /* background — cool white */
+  --n-100: #eff3f7;
+  --n-200: #d8e1e8;  /* border — cool grey */
+  --n-300: #c2ceda;
+  --n-400: #93a5b4;
+  --n-500: #6b8091;
+  --n-600: #536875;  /* secondary text — slate */
+  --n-700: #3d5260;
+  --n-800: #263c4d;
+  --n-900: #172b3a;  /* main text — charcoal navy */
 
   /* ---- Surfaces ---- */
   --surface-page: var(--n-50);
   --surface-card: var(--n-white);
   --surface-sunken: var(--n-100);
   --surface-raised: var(--n-white);
-  --surface-inverse: var(--n-900);
+  --surface-inverse: var(--primary-dark); /* toasts/tooltips: deep navy */
 
   /* ---- Text ---- */
   --text-primary: var(--n-900);
@@ -32,15 +37,18 @@
   --border-strong: var(--n-300);
   --border-focus: var(--primary);
 
-  /* ---- Primary (clinical indigo-blue): user actions, navigation, links ---- */
-  --primary: oklch(0.50 0.16 262);
-  --primary-hover: oklch(0.44 0.16 262);
-  --primary-active: oklch(0.40 0.16 262);
-  --primary-tint: oklch(0.955 0.025 262);
-  --primary-tint-hover: oklch(0.930 0.035 262);
-  --primary-border: oklch(0.85 0.06 262);
+  /* ---- Primary (clinical blue): main actions, active navigation, links ---- */
+  --primary: #1769aa;
+  --primary-hover: #135a93;
+  --primary-active: #104e80;
+  --primary-dark: #123b5d;   /* deep navy: headings, selected states, sidebar */
+  --primary-tint: #eaf4fa;   /* pale blue: selected rows, information panels */
+  --primary-tint-hover: #dcecf7;
+  --primary-border: #a9cbe2;
 
-  /* ---- AI accent (violet): EVERYTHING AI-generated or AI-related, nothing else ---- */
+  /* ---- AI accent (violet): EVERYTHING AI-generated or AI-related, nothing else.
+     Not part of the clinical palette spec — retained as the AI trust signal
+     (label/cite/qualify/gate patterns depend on it being unmistakable). ---- */
   --ai: oklch(0.50 0.16 295);
   --ai-hover: oklch(0.44 0.16 295);
   --ai-tint: oklch(0.965 0.020 295);
@@ -48,33 +56,96 @@
   --ai-border: oklch(0.875 0.055 295);
   --ai-text: oklch(0.44 0.16 295);
 
-  /* ---- Semantic ---- */
-  --success: oklch(0.55 0.14 155);
-  --success-tint: oklch(0.960 0.035 155);
-  --success-border: oklch(0.870 0.070 155);
-  --warning: oklch(0.60 0.14 70);
-  --warning-tint: oklch(0.965 0.040 85);
-  --warning-border: oklch(0.870 0.080 85);
-  --critical: oklch(0.53 0.19 27);
-  --critical-hover: oklch(0.47 0.19 27);
-  --critical-tint: oklch(0.960 0.025 27);
-  --critical-border: oklch(0.870 0.060 27);
-  --info: oklch(0.55 0.13 240);
-  --info-tint: oklch(0.960 0.025 240);
-  --info-border: oklch(0.870 0.055 240);
+  /* ---- Semantic (status/risk only — never brand or decoration) ---- */
+  --success: #27845b;        /* medical green: completed, confirmed, stable */
+  --success-tint: #e7f4ee;
+  --success-border: #a9d6c2;
+  --warning: #b86e00;        /* amber: attention required, pending review */
+  --warning-tint: #f9f1e0;
+  --warning-border: #e3c48e;
+  --critical: #b4232f;       /* deep red: errors, allergies, dangerous results */
+  --critical-hover: #9c1e29;
+  --critical-tint: #f9e9ea;
+  --critical-border: #e4a9ae;
+  --info: #087e8b;           /* cyan-blue: neutral system information */
+  --info-tint: #e4f2f4;
+  --info-border: #9dcdd3;
 
   /* ---- Acuity / risk scale (patient status pills) ---- */
   --acuity-low: var(--success);
   --acuity-low-tint: var(--success-tint);
-  --acuity-moderate: oklch(0.58 0.14 85);
-  --acuity-moderate-tint: oklch(0.965 0.040 85);
-  --acuity-high: oklch(0.58 0.16 50);
-  --acuity-high-tint: oklch(0.960 0.035 50);
+  --acuity-moderate: var(--warning);
+  --acuity-moderate-tint: var(--warning-tint);
+  --acuity-high: #bc4a1c; /* burnt orange between amber and critical red */
+  --acuity-high-tint: #f9ede4;
   --acuity-critical: var(--critical);
   --acuity-critical-tint: var(--critical-tint);
 
   /* ---- AI confidence scale ---- */
   --conf-high: var(--success);
-  --conf-medium: oklch(0.58 0.14 85);
+  --conf-medium: var(--warning);
   --conf-low: var(--critical);
+}
+
+/* Dark theme. The app resolves the user's Settings choice (system/light/dark)
+   to a data-theme attribute on <html>; "system" follows the OS via matchMedia.
+   Same roles, night-shift-friendly values: deep navy surfaces, lifted accents.
+   Single-token accents (--primary, --critical) balance "white label on solid
+   button" against "coloured text on dark card" — both land ~4:1, the best a
+   shared token allows; see PALETTE.md for the audit. */
+:root[data-theme="dark"] {
+  /* Ramp inverts: low numbers hug the dark surfaces, high numbers carry text */
+  --n-25: #0c141c;
+  --n-50: #101b26;
+  --n-100: #182634;
+  --n-200: #243646;
+  --n-300: #31465a;
+  --n-400: #4f677b;
+  --n-500: #7e94a6;
+  --n-600: #a3b5c2;
+  --n-700: #c2cfda;
+  --n-800: #dbe4ec;
+  --n-900: #eef4f9;
+
+  --surface-page: #0f1924;
+  --surface-card: #16232f;
+  --surface-sunken: #0c151d;
+  --surface-raised: #1b2a38;
+  --surface-inverse: #223648;
+
+  /* Text/border roles inherit the inverted ramp; inverse label stays white
+     (solid blue/red buttons keep white labels in both themes) */
+  --text-inverse: #ffffff;
+
+  --primary: #4a97d2;
+  --primary-hover: #61a7dc;
+  --primary-active: #78b5e3;
+  --primary-dark: #223648;
+  --primary-tint: #14283a;
+  --primary-tint-hover: #1a3349;
+  --primary-border: #2e5573;
+
+  --ai: oklch(0.55 0.15 295);
+  --ai-hover: oklch(0.62 0.14 295);
+  --ai-tint: oklch(0.26 0.035 295);
+  --ai-tint-strong: oklch(0.31 0.045 295);
+  --ai-border: oklch(0.40 0.07 295);
+  --ai-text: oklch(0.80 0.09 295);
+
+  --success: #4db286;
+  --success-tint: #122a1f;
+  --success-border: #1f4a36;
+  --warning: #d39336;
+  --warning-tint: #2b2110;
+  --warning-border: #55401a;
+  --critical: #d5626c;
+  --critical-hover: #c04d58;
+  --critical-tint: #301619;
+  --critical-border: #5f2b31;
+  --info: #45a8b4;
+  --info-tint: #0f2629;
+  --info-border: #1e4b51;
+
+  --acuity-high: #d57c48;
+  --acuity-high-tint: #2d1d12;
 }

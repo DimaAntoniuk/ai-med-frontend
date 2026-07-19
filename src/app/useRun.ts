@@ -4,20 +4,12 @@ import { streamUrl } from "../api/client";
 import type { AiEvent, BlockDto, RunStatus } from "../api/types";
 import type { WidgetDescriptor } from "../widgets/registry";
 
-/** Friendly labels for the live activity line while the agent works. */
-const TOOL_LABELS: Record<string, string> = {
-  diagnostic_subagent: "Consulting the diagnostic subagent",
-  gap_analysis_subagent: "Running gap analysis",
-  treatment_subagent: "Drafting the treatment plan",
-  retrieve: "Searching the clinical knowledge base",
-  present: "Preparing a result block",
-};
-
 const THOUGHTS_LIMIT = 6000;
 
 export interface RunViewState {
   status: RunStatus | null;
   widgets: WidgetDescriptor[];
+  /** "reading" right after run_started, else the last tool name — view localizes it */
   activity: string | null;
   thoughts: string;
   error: string | null;
@@ -60,12 +52,9 @@ function reduce(state: RunViewState, action: Action): RunViewState {
       const e = action.event;
       switch (e.type) {
         case "run_started":
-          return { ...state, status: "running", activity: "MedAI is reading the transcript" };
+          return { ...state, status: "running", activity: "reading" };
         case "tool_call":
-          return {
-            ...state,
-            activity: TOOL_LABELS[e.tool_name ?? ""] ?? `Calling ${e.tool_name ?? "a tool"}`,
-          };
+          return { ...state, activity: e.tool_name ?? null };
         case "tool_result":
           return state;
         case "content_block_delta": {

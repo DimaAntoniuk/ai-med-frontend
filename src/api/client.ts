@@ -1,4 +1,11 @@
-import type { RunDto, TraceMessageDto, TranscriptDto } from "./types";
+import type {
+  ConversationDto,
+  RunDto,
+  TraceMessageDto,
+  TranscriptDto,
+  TranscriptSummaryDto,
+  UtteranceDto,
+} from "./types";
 
 /** The POC backend allows the dev-server origin via its CORS_ORIGINS setting. */
 const BASE = import.meta.env.VITE_API_BASE ?? "http://localhost:8000";
@@ -88,6 +95,41 @@ export const api = {
     return request(`/transcripts/${id}`);
   },
 
+  /** Consultation history, newest first. */
+  listTranscripts(limit = 50, offset = 0): Promise<TranscriptSummaryDto[]> {
+    return request(`/transcripts?limit=${limit}&offset=${offset}`);
+  },
+
+  getConversation(id: string): Promise<ConversationDto> {
+    return request(`/transcripts/${id}/conversation`);
+  },
+
+  getUtterances(id: string): Promise<UtteranceDto[]> {
+    return request(`/transcripts/${id}/utterances`);
+  },
+
+  /**
+   * Full replacement of the speaker structure. Side effect: the canonical raw
+   * text is regenerated from these lines — unattributed text is dropped.
+   */
+  putUtterances(id: string, utterances: UtteranceDto[]): Promise<TranscriptDto> {
+    return request(`/transcripts/${id}/utterances`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ utterances }),
+    });
+  },
+
+  /** Discard the structure; raw text stays untouched. */
+  deleteUtterances(id: string): Promise<TranscriptDto> {
+    return request(`/transcripts/${id}/utterances`, { method: "DELETE" });
+  },
+
+  /** Re-derive the structure from the current raw text's markers. */
+  parseUtterances(id: string): Promise<TranscriptDto> {
+    return postJson(`/transcripts/${id}/utterances/parse`);
+  },
+
   updateTranscript(id: string, text: string): Promise<TranscriptDto> {
     return request(`/transcripts/${id}`, {
       method: "PUT",
@@ -102,6 +144,11 @@ export const api = {
 
   createRun(transcriptId: string): Promise<RunDto> {
     return postJson("/runs", { transcript_id: transcriptId });
+  },
+
+  /** Run history for a consultation, newest first. Summaries only — `blocks` is always empty here. */
+  listRuns(transcriptId: string): Promise<RunDto[]> {
+    return request(`/transcripts/${transcriptId}/runs`);
   },
 
   getRun(id: string): Promise<RunDto> {

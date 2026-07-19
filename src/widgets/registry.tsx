@@ -1,5 +1,6 @@
 import type { ComponentType } from "react";
 import { Card } from "../design/data/Card";
+import { useT } from "../i18n";
 
 /**
  * Lego-block widget system: the backend agent controls the UI by emitting
@@ -31,8 +32,9 @@ export function isRegistered(type: string): boolean {
 }
 
 function FallbackWidget({ descriptor }: WidgetProps) {
+  const t = useT();
   return (
-    <Card title={`Unrecognized block — ${descriptor.type}`}>
+    <Card title={t("widget.unknown", { type: descriptor.type })}>
       <pre
         style={{
           margin: 0,

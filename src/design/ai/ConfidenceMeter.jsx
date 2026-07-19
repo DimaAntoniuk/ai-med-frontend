@@ -1,9 +1,10 @@
 import React from "react";
 
-export function ConfidenceMeter({ level = "high", showLabel = true }) {
+export function ConfidenceMeter({ level = "high", showLabel = true, labels }) {
   const n = { high: 3, medium: 2, low: 1 }[level] || 3;
   const color = `var(--conf-${level})`;
-  const label = { high: "High confidence", medium: "Medium confidence", low: "Low confidence — verify" }[level];
+  const defaults = { high: "High confidence", medium: "Medium confidence", low: "Low confidence — verify" };
+  const label = (labels && labels[level]) || defaults[level];
   return (
     <span title={label} style={{
       display: "inline-flex", alignItems: "center", gap: 8, padding: "3px 10px",
