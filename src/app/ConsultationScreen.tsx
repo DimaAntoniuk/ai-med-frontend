@@ -16,6 +16,9 @@ import { TraceView } from "./TraceView";
 
 const SESSION_KEY = "medai-poc-session";
 
+/** Fired whenever the consultation session changes — the nav history listens. */
+export const SESSION_EVENT = "medai:session-changed";
+
 interface Session {
   transcriptId?: string;
   runId?: string;
@@ -31,11 +34,20 @@ function loadSession(): Session {
 
 function saveSession(session: Session) {
   sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
+  window.dispatchEvent(new CustomEvent(SESSION_EVENT, { detail: session }));
+}
+
+export function currentTranscriptId(): string | null {
+  return loadSession().transcriptId ?? null;
 }
 
 /** Point the consultation view at a transcript (e.g. one picked from history). */
 export function openTranscriptSession(transcriptId: string) {
   saveSession({ transcriptId });
+}
+
+export function clearTranscriptSession() {
+  saveSession({});
 }
 
 function runBadge(t: Translate, status: RunStatus | null) {

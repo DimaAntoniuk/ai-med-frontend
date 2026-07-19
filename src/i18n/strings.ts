@@ -129,18 +129,16 @@ export const en = {
   "reviewbar.by": "by {reviewer}",
 
   "nav.consultation": "Consultation",
+  "nav.newConsultation": "New consultation",
   "nav.history": "History",
   "nav.settings": "Settings",
   "profile.local": "Local session",
   "profile.role": "Clinician",
 
-  "history.title": "Consultation history",
   "history.loading": "Loading history…",
-  "history.empty": "No consultations yet — start the first one in the Consultation view.",
+  "history.empty": "No consultations yet.",
   "history.draft": "Draft",
   "history.approved": "Approved",
-  "history.doctors": "Doctors: {n}",
-  "history.patients": "Patients: {n}",
   "history.more": "Show more",
 
   "settings.title": "Settings",
@@ -280,18 +278,16 @@ export const uk: Record<MessageKey, string> = {
   "reviewbar.by": "— {reviewer}",
 
   "nav.consultation": "Консультація",
+  "nav.newConsultation": "Нова консультація",
   "nav.history": "Історія",
   "nav.settings": "Налаштування",
   "profile.local": "Локальний сеанс",
   "profile.role": "Клініцист",
 
-  "history.title": "Історія консультацій",
   "history.loading": "Завантаження історії…",
-  "history.empty": "Консультацій ще немає — почніть першу на екрані «Консультація».",
+  "history.empty": "Консультацій ще немає.",
   "history.draft": "Чернетка",
   "history.approved": "Підтверджено",
-  "history.doctors": "Лікарі: {n}",
-  "history.patients": "Пацієнти: {n}",
   "history.more": "Показати ще",
 
   "settings.title": "Налаштування",

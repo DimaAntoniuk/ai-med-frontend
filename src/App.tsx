@@ -2,14 +2,18 @@ import { useEffect, useState } from "react";
 import { UNAUTHORIZED_EVENT, api } from "./api/client";
 import { Badge } from "./design/data/Badge";
 import { Button } from "./design/forms/Button";
-import { ConsultationScreen, openTranscriptSession } from "./app/ConsultationScreen";
-import { HistoryScreen } from "./app/HistoryScreen";
+import {
+  ConsultationScreen,
+  clearTranscriptSession,
+  openTranscriptSession,
+} from "./app/ConsultationScreen";
+import { HistoryNav } from "./app/HistoryNav";
 import { SettingsScreen } from "./app/SettingsScreen";
 import { SignInScreen } from "./app/SignInScreen";
 import { useT } from "./i18n";
 
 type AuthState = "unknown" | "anonymous" | "authenticated";
-type View = "consultation" | "history" | "settings";
+type View = "consultation" | "settings";
 
 const PROFILE_KEY = "medai-profile-email";
 
@@ -57,6 +61,21 @@ export function App() {
   const [auth, setAuth] = useState<AuthState>("unknown");
   const [view, setView] = useState<View>("consultation");
   const [email, setEmail] = useState<string | null>(() => localStorage.getItem(PROFILE_KEY));
+  // Remount key for ConsultationScreen — it rehydrates from the stored session
+  // on mount, so bumping this after a session change swaps the open transcript.
+  const [consultKey, setConsultKey] = useState(0);
+
+  const newConsultation = () => {
+    clearTranscriptSession();
+    setConsultKey((k) => k + 1);
+    setView("consultation");
+  };
+
+  const openFromHistory = (id: string) => {
+    openTranscriptSession(id);
+    setConsultKey((k) => k + 1);
+    setView("consultation");
+  };
 
   useEffect(() => {
     api.probeAuth().then((ok) => setAuth(ok ? "authenticated" : "anonymous"));
@@ -126,15 +145,20 @@ export function App() {
           <Badge tone="ai">{t("app.badge")}</Badge>
         </span>
 
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={newConsultation}
+          style={{ justifyContent: "flex-start", margin: "0 0 8px" }}
+          icon={<span aria-hidden="true">+</span>}
+        >
+          {t("nav.newConsultation")}
+        </Button>
+
         <NavItem
           label={t("nav.consultation")}
           active={view === "consultation"}
           onClick={() => setView("consultation")}
-        />
-        <NavItem
-          label={t("nav.history")}
-          active={view === "history"}
-          onClick={() => setView("history")}
         />
         <NavItem
           label={t("nav.settings")}
@@ -142,7 +166,33 @@ export function App() {
           onClick={() => setView("settings")}
         />
 
-        <span style={{ flex: 1 }} />
+        {/* History: horizontally separated section, vertical scroll */}
+        <div
+          style={{
+            marginTop: 12,
+            paddingTop: 12,
+            borderTop: "1px solid var(--border-subtle)",
+            flex: 1,
+            minHeight: 0,
+            display: "flex",
+            flexDirection: "column",
+            gap: 4,
+          }}
+        >
+          <span
+            style={{
+              fontSize: "var(--text-xs)",
+              fontWeight: "var(--weight-semibold)",
+              letterSpacing: "var(--tracking-caps)",
+              textTransform: "uppercase",
+              color: "var(--text-tertiary)",
+              padding: "0 12px 2px",
+            }}
+          >
+            {t("nav.history")}
+          </span>
+          <HistoryNav onOpen={openFromHistory} />
+        </div>
 
         <div
           style={{
@@ -196,18 +246,7 @@ export function App() {
 
       <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", overflowY: "auto" }}>
         <main style={{ flex: 1, width: "100%", maxWidth: 860, margin: "0 auto", padding: "18px 24px 8px" }}>
-          {view === "consultation" ? (
-            <ConsultationScreen />
-          ) : view === "history" ? (
-            <HistoryScreen
-              onOpen={(id) => {
-                openTranscriptSession(id);
-                setView("consultation");
-              }}
-            />
-          ) : (
-            <SettingsScreen />
-          )}
+          {view === "consultation" ? <ConsultationScreen key={consultKey} /> : <SettingsScreen />}
         </main>
         <footer
           style={{
