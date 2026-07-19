@@ -5,6 +5,11 @@
 @import "./design/tokens/elevation.css";
 @import "./design/tokens/base.css";
 
+/* Native controls (inputs, scrollbars, selects) follow the OS theme too */
+:root {
+  color-scheme: light dark;
+}
+
 html,
 body,
 #root {
