@@ -3,6 +3,7 @@ import { Card } from "../design/data/Card";
 import { AIBadge } from "../design/ai/AIBadge";
 import { SourceRow } from "../design/ai/CitationChip";
 import { ConfidenceMeter } from "../design/ai/ConfidenceMeter";
+import { useT } from "../i18n";
 
 /** Defensive readers — block payloads are LLM-produced, never trust the shape. */
 export const asStr = (v: unknown, fallback = ""): string =>
@@ -52,13 +53,21 @@ export function ConfidenceRow({
   score: number | null;
   rationale: string;
 }) {
+  const t = useT();
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
         <span style={{ minWidth: 76, display: "inline-flex" }}>
           <Overline>{label}</Overline>
         </span>
-        <ConfidenceMeter level={confidenceLevel(score)} />
+        <ConfidenceMeter
+          level={confidenceLevel(score)}
+          labels={{
+            high: t("confidence.high"),
+            medium: t("confidence.medium"),
+            low: t("confidence.low"),
+          }}
+        />
         {score !== null && (
           <span
             style={{
@@ -79,10 +88,11 @@ export function ConfidenceRow({
 }
 
 export function SourceList({ sources }: { sources: string[] }) {
+  const t = useT();
   if (sources.length === 0) return null;
   return (
     <div>
-      <Overline>Sources</Overline>
+      <Overline>{t("widget.sources")}</Overline>
       <div>
         {sources.map((source, i) => (
           <SourceRow key={source} index={i + 1} source={source} />
@@ -102,8 +112,9 @@ export function AIBlockCard({
   footer?: ReactNode;
   children: ReactNode;
 }) {
+  const t = useT();
   return (
-    <Card title={title} ai action={<AIBadge label="AI-generated" />} footer={footer}>
+    <Card title={title} ai action={<AIBadge label={t("widget.aiGenerated")} />} footer={footer}>
       <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>{children}</div>
     </Card>
   );

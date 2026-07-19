@@ -8,6 +8,7 @@ import { Button } from "../design/forms/Button";
 import { Textarea } from "../design/forms/Textarea";
 import { AIBadge } from "../design/ai/AIBadge";
 import { WidgetView } from "../widgets";
+import { useT, type Translate } from "../i18n";
 import { useRun } from "./useRun";
 import { TraceView } from "./TraceView";
 
@@ -30,22 +31,39 @@ function saveSession(session: Session) {
   sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
 }
 
-function runBadge(status: RunStatus | null) {
+function runBadge(t: Translate, status: RunStatus | null) {
   switch (status) {
     case "running":
-      return <Badge tone="info" dot>Running</Badge>;
+      return <Badge tone="info" dot>{t("run.running")}</Badge>;
     case "completed":
-      return <Badge tone="success" dot>Completed</Badge>;
+      return <Badge tone="success" dot>{t("run.completed")}</Badge>;
     case "failed":
-      return <Badge tone="critical" dot>Failed</Badge>;
+      return <Badge tone="critical" dot>{t("run.failed")}</Badge>;
     case "interrupted":
-      return <Badge tone="critical" dot>Interrupted</Badge>;
+      return <Badge tone="critical" dot>{t("run.interrupted")}</Badge>;
     default:
       return null;
   }
 }
 
+const KNOWN_ACTIVITIES = [
+  "diagnostic_subagent",
+  "gap_analysis_subagent",
+  "treatment_subagent",
+  "retrieve",
+  "present",
+] as const;
+
+function activityLabel(t: Translate, activity: string | null): string {
+  if (!activity) return t("run.working");
+  if (activity === "reading") return t("activity.reading");
+  const known = KNOWN_ACTIVITIES.find((k) => k === activity);
+  if (known) return t(`activity.${known}`);
+  return t("activity.calling", { tool: activity });
+}
+
 export function ConsultationScreen() {
+  const t = useT();
   const [transcript, setTranscript] = useState<TranscriptDto | null>(null);
   const [text, setText] = useState("");
   const [runId, setRunId] = useState<string | null>(null);
@@ -76,7 +94,7 @@ export function ConsultationScreen() {
     try {
       await action();
     } catch (e) {
-      setError(e instanceof ApiRequestError ? e.detail : "Something went wrong — try again.");
+      setError(e instanceof ApiRequestError && e.status !== 0 ? e.detail : t("error.generic"));
     } finally {
       setBusy(null);
     }
@@ -141,33 +159,33 @@ export function ConsultationScreen() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
       {error && (
-        <Alert tone="critical" title="Request failed" onDismiss={() => setError(null)}>
+        <Alert tone="critical" title={t("error.title")} onDismiss={() => setError(null)}>
           {error}
         </Alert>
       )}
 
       {/* Step 1 — consultation transcript intake */}
       {!transcript && (
-        <Card title="New consultation">
+        <Card title={t("intake.title")}>
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             <Textarea
-              label="Consultation transcript"
-              hint="Paste the consultation text, or upload an audio recording. Audio is transcribed locally and never stored."
+              label={t("intake.label")}
+              hint={t("intake.hint")}
               rows={9}
-              placeholder="Patient reports…"
+              placeholder={t("intake.placeholder")}
               value={text}
               onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setText(e.target.value)}
             />
             <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
               <Button onClick={createDraft} disabled={!text.trim() || busy !== null}>
-                {busy === "create" ? "Creating draft…" : "Create draft"}
+                {busy === "create" ? t("intake.creatingDraft") : t("intake.createDraft")}
               </Button>
               <Button
                 variant="secondary"
                 disabled={busy !== null}
                 onClick={() => fileInput.current?.click()}
               >
-                {busy === "upload" ? "Transcribing audio…" : "Upload audio"}
+                {busy === "upload" ? t("intake.transcribing") : t("intake.uploadAudio")}
               </Button>
               <input
                 ref={fileInput}
@@ -188,14 +206,14 @@ export function ConsultationScreen() {
       {/* Step 2 — doctor review gate */}
       {transcript && (
         <Card
-          title="Consultation transcript"
+          title={t("review.title")}
           action={
             <span style={{ display: "flex", gap: 8, alignItems: "center" }}>
               {transcript.language && <Tag style={{ fontFamily: "var(--font-mono)" }}>{transcript.language}</Tag>}
               {isDraft ? (
-                <Badge tone="warning" dot>Draft — awaiting review</Badge>
+                <Badge tone="warning" dot>{t("review.draftBadge")}</Badge>
               ) : (
-                <Badge tone="success" dot>Approved</Badge>
+                <Badge tone="success" dot>{t("review.approvedBadge")}</Badge>
               )}
             </span>
           }
@@ -207,14 +225,14 @@ export function ConsultationScreen() {
                 color: "var(--text-tertiary)",
               }}
             >
-              transcript {transcript.id}
+              {t("review.transcriptId", { id: transcript.id })}
             </span>
           }
         >
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {isDraft ? (
               <Textarea
-                hint="Review and correct the transcript. Nothing reaches MedAI until you approve it."
+                hint={t("review.hint")}
                 rows={7}
                 value={text}
                 onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setText(e.target.value)}
@@ -233,28 +251,28 @@ export function ConsultationScreen() {
                 {transcript.text}
               </div>
             )}
-            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
               {isDraft && (
                 <>
                   <Button onClick={approve} disabled={busy !== null || !text.trim()}>
-                    {busy === "approve" ? "Approving…" : "Approve transcript"}
+                    {busy === "approve" ? t("review.approving") : t("review.approve")}
                   </Button>
                   {dirty && (
                     <Button variant="secondary" onClick={saveEdits} disabled={busy !== null}>
-                      {busy === "save" ? "Saving…" : "Save changes"}
+                      {busy === "save" ? t("review.saving") : t("review.save")}
                     </Button>
                   )}
                 </>
               )}
               {isApproved && !runId && (
-                <Button variant="ai" onClick={startRun} disabled={busy !== null}>
-                  {busy === "run" ? "Starting run…" : "Run MedAI analysis"}
-                </Button>
-              )}
-              {isApproved && !runId && (
-                <span style={{ fontSize: "var(--text-sm)", color: "var(--text-tertiary)" }}>
-                  Identifying details are redacted locally before MedAI sees the text.
-                </span>
+                <>
+                  <Button variant="ai" onClick={startRun} disabled={busy !== null}>
+                    {busy === "run" ? t("review.starting") : t("review.run")}
+                  </Button>
+                  <span style={{ fontSize: "var(--text-sm)", color: "var(--text-tertiary)" }}>
+                    {t("review.redactionNote")}
+                  </span>
+                </>
               )}
             </div>
           </div>
@@ -266,10 +284,10 @@ export function ConsultationScreen() {
         <>
           <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "2px 4px" }}>
             <AIBadge compact label="MedAI" />
-            {runBadge(run.status)}
+            {runBadge(t, run.status)}
             {run.status === "running" && (
               <span style={{ fontSize: "var(--text-sm)", color: "var(--text-tertiary)" }}>
-                {run.activity ?? "Working"}…
+                {activityLabel(t, run.activity)}…
               </span>
             )}
             <span style={{ flex: 1 }} />
@@ -280,7 +298,7 @@ export function ConsultationScreen() {
                 color: "var(--text-tertiary)",
               }}
             >
-              run {runId.slice(0, 8)}
+              {t("run.id", { id: runId.slice(0, 8) })}
             </span>
           </div>
 
@@ -296,9 +314,9 @@ export function ConsultationScreen() {
                 cursor: "pointer",
               }}
               onClick={() => setThoughtsOpen((v) => !v)}
-              title="MedAI working notes — click to expand"
+              title={t("run.notesTitle")}
             >
-              <span style={{ fontWeight: "var(--weight-semibold)" }}>Working notes </span>
+              <span style={{ fontWeight: "var(--weight-semibold)" }}>{t("run.notes")} </span>
               <span
                 style={{
                   display: "block",
@@ -318,25 +336,25 @@ export function ConsultationScreen() {
           ))}
 
           {run.status === "failed" && (
-            <Alert tone="critical" title="Run failed">
-              {run.error ?? "The agent run failed."} The transcript is unchanged — start a new run to retry.
+            <Alert tone="critical" title={t("run.failedTitle")}>
+              {run.error ?? t("run.failedFallback")} {t("run.failedBody")}
             </Alert>
           )}
           {run.status === "interrupted" && (
-            <Alert tone="warning" title="Run interrupted">
-              The service restarted while this run was in progress. Completed blocks above were preserved.
+            <Alert tone="warning" title={t("run.interruptedTitle")}>
+              {t("run.interruptedBody")}
             </Alert>
           )}
           {run.status === "completed" && run.widgets.length === 0 && (
-            <Alert tone="info" title="No blocks produced">
-              The run completed without presenting any result blocks.
+            <Alert tone="info" title={t("run.noBlocksTitle")}>
+              {t("run.noBlocksBody")}
             </Alert>
           )}
 
           {runFinished && <TraceView runId={runId} />}
           {runFinished && (
             <div>
-              <Button variant="secondary" onClick={reset}>Start new consultation</Button>
+              <Button variant="secondary" onClick={reset}>{t("run.newConsultation")}</Button>
             </div>
           )}
         </>

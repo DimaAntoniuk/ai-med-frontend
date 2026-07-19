@@ -3,6 +3,7 @@ import { Badge, Tag } from "../design/data/Badge";
 import { Alert } from "../design/feedback/Alert";
 import { ReviewBar } from "../design/ai/ReviewBar";
 import type { WidgetProps } from "./registry";
+import { useSettings, useT } from "../i18n";
 import {
   AIBlockCard,
   ConfidenceRow,
@@ -28,13 +29,14 @@ function BulletList({ items }: { items: string[] }) {
 
 /** Top-3 differential diagnosis with dual (diagnostic + evidence) confidence. */
 export function DifferentialWidget({ payload }: WidgetProps) {
+  const t = useT();
   const data = payload as Record<string, unknown>;
   const items = asObjArray(data?.differentials);
   return (
-    <AIBlockCard title="Differential diagnosis">
+    <AIBlockCard title={t("widget.differential.title")}>
       {items.length === 0 && (
         <span style={{ color: "var(--text-tertiary)", fontSize: "var(--text-sm)" }}>
-          MedAI returned no differentials for this transcript.
+          {t("widget.differential.empty")}
         </span>
       )}
       {items.map((item, i) => {
@@ -67,17 +69,17 @@ export function DifferentialWidget({ payload }: WidgetProps) {
               </span>
               {icd10 && (
                 <Tag style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-xs)" }}>
-                  ICD-10 {icd10}
+                  {t("widget.differential.icd10", { code: icd10 })}
                 </Tag>
               )}
             </div>
             <ConfidenceRow
-              label="Diagnostic"
+              label={t("widget.differential.diagnostic")}
               score={asNum(item.diagnostic_confidence)}
               rationale={asStr(item.diagnostic_rationale)}
             />
             <ConfidenceRow
-              label="Evidence"
+              label={t("widget.differential.evidence")}
               score={asNum(item.evidence_confidence)}
               rationale={asStr(item.evidence_rationale)}
             />
@@ -91,26 +93,27 @@ export function DifferentialWidget({ payload }: WidgetProps) {
 
 /** Red flags, unasked questions, and recommended tests. */
 export function GapAnalysisWidget({ payload }: WidgetProps) {
+  const t = useT();
   const data = payload as Record<string, unknown>;
   const redFlags = asStrArray(data?.red_flags);
   const missingQuestions = asStrArray(data?.missing_questions);
   const recommendedTests = asStrArray(data?.recommended_tests);
   return (
-    <AIBlockCard title="Gap analysis" footer={<SourceList sources={asStrArray(data?.sources)} />}>
+    <AIBlockCard title={t("widget.gap.title")} footer={<SourceList sources={asStrArray(data?.sources)} />}>
       {redFlags.length > 0 && (
-        <Alert tone="critical" title="Red flags">
+        <Alert tone="critical" title={t("widget.gap.redFlags")}>
           <BulletList items={redFlags} />
         </Alert>
       )}
       {missingQuestions.length > 0 && (
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          <Overline>Questions not yet asked</Overline>
+          <Overline>{t("widget.gap.questions")}</Overline>
           <BulletList items={missingQuestions} />
         </div>
       )}
       {recommendedTests.length > 0 && (
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          <Overline>Recommended tests</Overline>
+          <Overline>{t("widget.gap.tests")}</Overline>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
             {recommendedTests.map((test) => (
               <Tag key={test}>{test}</Tag>
@@ -120,7 +123,7 @@ export function GapAnalysisWidget({ payload }: WidgetProps) {
       )}
       {redFlags.length + missingQuestions.length + recommendedTests.length === 0 && (
         <span style={{ color: "var(--text-tertiary)", fontSize: "var(--text-sm)" }}>
-          MedAI found no gaps to report.
+          {t("widget.gap.empty")}
         </span>
       )}
     </AIBlockCard>
@@ -132,30 +135,45 @@ export function GapAnalysisWidget({ payload }: WidgetProps) {
  * Review state is client-side only in this POC (no accept endpoint yet).
  */
 export function TreatmentWidget({ payload }: WidgetProps) {
+  const { t, locale } = useSettings();
   const data = payload as Record<string, unknown>;
   const [review, setReview] = useState<"pending" | "approved" | "rejected">("pending");
   const planType = asStr(data?.plan_type, "preliminary");
   const steps = asStrArray(data?.steps);
   const rationale = asStr(data?.rationale);
-  const reviewedAt = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  const reviewedAt = new Date().toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" });
   return (
     <AIBlockCard
-      title="Treatment plan"
+      title={t("widget.treatment.title")}
       footer={
         review === "pending" ? (
           <ReviewBar
-            approveLabel="Approve plan"
+            approveLabel={t("widget.treatment.approve")}
             onApprove={() => setReview("approved")}
             onReject={() => setReview("rejected")}
+            labels={{
+              pending: t("reviewbar.pending"),
+              reject: t("reviewbar.reject"),
+              edit: t("reviewbar.edit"),
+            }}
           />
         ) : (
-          <ReviewBar status={review} reviewer="Clinician" time={reviewedAt} />
+          <ReviewBar
+            status={review}
+            reviewer={t("widget.treatment.clinician")}
+            time={reviewedAt}
+            labels={{
+              approved: t("reviewbar.approved"),
+              rejected: t("reviewbar.rejected"),
+              by: "",
+            }}
+          />
         )
       }
     >
       <div>
         <Badge tone={planType === "final" ? "success" : "warning"} dot>
-          {planType === "final" ? "Final plan" : "Preliminary plan"}
+          {planType === "final" ? t("widget.treatment.final") : t("widget.treatment.preliminary")}
         </Badge>
       </div>
       {steps.length > 0 && (
@@ -169,7 +187,7 @@ export function TreatmentWidget({ payload }: WidgetProps) {
       )}
       {rationale && (
         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-          <Overline>Rationale</Overline>
+          <Overline>{t("widget.treatment.rationale")}</Overline>
           <span style={{ fontSize: "var(--text-sm)", color: "var(--text-secondary)" }}>{rationale}</span>
         </div>
       )}

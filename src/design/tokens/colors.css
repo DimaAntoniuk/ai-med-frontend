@@ -87,66 +87,65 @@
   --conf-low: var(--critical);
 }
 
-/* Laptop-driven theme: tokens follow the OS colour scheme (no in-app toggle).
+/* Dark theme. The app resolves the user's Settings choice (system/light/dark)
+   to a data-theme attribute on <html>; "system" follows the OS via matchMedia.
    Same roles, night-shift-friendly values: deep navy surfaces, lifted accents.
    Single-token accents (--primary, --critical) balance "white label on solid
    button" against "coloured text on dark card" — both land ~4:1, the best a
    shared token allows; see PALETTE.md for the audit. */
-@media (prefers-color-scheme: dark) {
-  :root {
-    /* Ramp inverts: low numbers hug the dark surfaces, high numbers carry text */
-    --n-25: #0c141c;
-    --n-50: #101b26;
-    --n-100: #182634;
-    --n-200: #243646;
-    --n-300: #31465a;
-    --n-400: #4f677b;
-    --n-500: #7e94a6;
-    --n-600: #a3b5c2;
-    --n-700: #c2cfda;
-    --n-800: #dbe4ec;
-    --n-900: #eef4f9;
+:root[data-theme="dark"] {
+  /* Ramp inverts: low numbers hug the dark surfaces, high numbers carry text */
+  --n-25: #0c141c;
+  --n-50: #101b26;
+  --n-100: #182634;
+  --n-200: #243646;
+  --n-300: #31465a;
+  --n-400: #4f677b;
+  --n-500: #7e94a6;
+  --n-600: #a3b5c2;
+  --n-700: #c2cfda;
+  --n-800: #dbe4ec;
+  --n-900: #eef4f9;
 
-    --surface-page: #0f1924;
-    --surface-card: #16232f;
-    --surface-sunken: #0c151d;
-    --surface-raised: #1b2a38;
-    --surface-inverse: #223648;
+  --surface-page: #0f1924;
+  --surface-card: #16232f;
+  --surface-sunken: #0c151d;
+  --surface-raised: #1b2a38;
+  --surface-inverse: #223648;
 
-    /* Text/border roles inherit the inverted ramp; inverse label stays white
-       (solid blue/red buttons keep white labels in both themes) */
-    --text-inverse: #ffffff;
+  /* Text/border roles inherit the inverted ramp; inverse label stays white
+     (solid blue/red buttons keep white labels in both themes) */
+  --text-inverse: #ffffff;
 
-    --primary: #4a97d2;
-    --primary-hover: #61a7dc;
-    --primary-active: #78b5e3;
-    --primary-dark: #223648;
-    --primary-tint: #14283a;
-    --primary-tint-hover: #1a3349;
-    --primary-border: #2e5573;
+  --primary: #4a97d2;
+  --primary-hover: #61a7dc;
+  --primary-active: #78b5e3;
+  --primary-dark: #223648;
+  --primary-tint: #14283a;
+  --primary-tint-hover: #1a3349;
+  --primary-border: #2e5573;
 
-    --ai: oklch(0.55 0.15 295);
-    --ai-hover: oklch(0.62 0.14 295);
-    --ai-tint: oklch(0.26 0.035 295);
-    --ai-tint-strong: oklch(0.31 0.045 295);
-    --ai-border: oklch(0.40 0.07 295);
-    --ai-text: oklch(0.80 0.09 295);
+  --ai: oklch(0.55 0.15 295);
+  --ai-hover: oklch(0.62 0.14 295);
+  --ai-tint: oklch(0.26 0.035 295);
+  --ai-tint-strong: oklch(0.31 0.045 295);
+  --ai-border: oklch(0.40 0.07 295);
+  --ai-text: oklch(0.80 0.09 295);
 
-    --success: #4db286;
-    --success-tint: #122a1f;
-    --success-border: #1f4a36;
-    --warning: #d39336;
-    --warning-tint: #2b2110;
-    --warning-border: #55401a;
-    --critical: #d5626c;
-    --critical-hover: #c04d58;
-    --critical-tint: #301619;
-    --critical-border: #5f2b31;
-    --info: #45a8b4;
-    --info-tint: #0f2629;
-    --info-border: #1e4b51;
+  --success: #4db286;
+  --success-tint: #122a1f;
+  --success-border: #1f4a36;
+  --warning: #d39336;
+  --warning-tint: #2b2110;
+  --warning-border: #55401a;
+  --critical: #d5626c;
+  --critical-hover: #c04d58;
+  --critical-tint: #301619;
+  --critical-border: #5f2b31;
+  --info: #45a8b4;
+  --info-tint: #0f2629;
+  --info-border: #1e4b51;
 
-    --acuity-high: #d57c48;
-    --acuity-high-tint: #2d1d12;
-  }
+  --acuity-high: #d57c48;
+  --acuity-high-tint: #2d1d12;
 }

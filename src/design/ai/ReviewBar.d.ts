@@ -7,5 +7,7 @@ export interface ReviewBarProps {
   status?: "pending" | "approved" | "rejected";
   reviewer?: string;
   time?: string;
+  /** Localized string overrides (defaults are English) */
+  labels?: { pending?: string; reject?: string; edit?: string; approved?: string; rejected?: string; by?: string };
 }
 export declare function ReviewBar(props: ReviewBarProps): JSX.Element;
