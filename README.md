@@ -31,7 +31,8 @@ src/
 ├── design/          # MedAI design system: tokens (CSS) + components (.jsx + .d.ts, ported as-is)
 ├── api/             # wire contract types + fetch client (client.ts, types.ts)
 ├── widgets/         # the lego-block registry + clinical/generic widgets
-└── app/             # ConsultationScreen (intake → review gate → run), useRun (SSE), TraceView
+└── app/             # ConsultationScreen (intake → review gate → run), useRun (SSE), TraceView,
+                     # TeamScreen + BillingScreen (team subscription)
 ```
 
 ## Run
@@ -58,12 +59,40 @@ answers 401. All requests carry `credentials: "include"`; the `EventSource` uses
 `withCredentials`. Without SMTP configured (`SMTP_HOST` empty) the backend logs the
 one-time code in the api process log — grep for `OTP for`.
 
+## Team subscription
+
+**Team** and **Billing** in the sidebar manage a shared workspace: who holds a seat, what
+they may do, and what the practice pays for it.
+
+The seat count is the hinge between the two screens. A member counts against it while they
+are active *or* while their invitation is outstanding; suspending a member keeps their
+history but frees the seat. Inviting past the limit is refused with a localized reason and
+a link into the plan dialog, rather than failing silently — and the plan dialog refuses to
+drop the seat count below the seats already in use.
+
+Roles are `owner` (subscription and billing included), `admin` (members and invitations,
+no billing) and `clinician`. The workspace always keeps at least one active owner: the
+last one cannot be demoted, suspended, or removed.
+
+The backend has no `/team` or `/billing` routes yet, so `src/api/team.ts` holds the
+**proposed wire contract next to an in-memory stand-in that answers it** — nothing there
+reaches the network, and changes live for the lifetime of the tab. Both screens say so on
+the page. When the backend ships, the fixture bodies become `request()` calls (as in
+`src/api/client.ts`) and neither screen changes. Rejections carry a `MessageKey` instead
+of a server string, so the backend is asked to answer the same set as `{"detail": "<key>"}`.
+
+Prices are per seat per month in minor units (kopiykas), UAH; the annual cycle bills twelve
+months up front. Invoice headers carry the ЄДРПОУ/ІПН that Ukrainian legal entities need.
+
 ## Verification
 
 - `npm run build` — type-check (`tsc -b`) + production bundle
 - `npx tsx scripts/widget-smoke.ts` — SSR-renders every widget with realistic,
   malformed, and empty payloads (block payloads are LLM-generated and unvalidated
   server-side, so widgets must never trust the shape)
+- `npx tsx scripts/team-smoke.ts` — exercises the seat/owner/billing rules in
+  `src/api/team.ts`, SSR-renders both team screens, and checks that every English
+  message key has a Ukrainian string with the same `{placeholders}`
 
 ## Streaming notes (matches the backend contract)
 

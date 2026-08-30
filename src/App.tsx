@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { UNAUTHORIZED_EVENT, api } from "./api/client";
 import { Badge } from "./design/data/Badge";
 import { Button } from "./design/forms/Button";
+import { BillingScreen } from "./app/BillingScreen";
 import {
   ConsultationScreen,
   clearTranscriptSession,
@@ -10,10 +11,11 @@ import {
 import { HistoryNav } from "./app/HistoryNav";
 import { SettingsScreen } from "./app/SettingsScreen";
 import { SignInScreen } from "./app/SignInScreen";
+import { TeamScreen } from "./app/TeamScreen";
 import { useT } from "./i18n";
 
 type AuthState = "unknown" | "anonymous" | "authenticated";
-type View = "consultation" | "settings";
+type View = "consultation" | "team" | "billing" | "settings";
 
 const PROFILE_KEY = "medai-profile-email";
 
@@ -64,17 +66,30 @@ export function App() {
   // Remount key for ConsultationScreen — it rehydrates from the stored session
   // on mount, so bumping this after a session change swaps the open transcript.
   const [consultKey, setConsultKey] = useState(0);
+  // Set when the team screen sends the reader to billing to buy seats, so the
+  // billing screen opens on the plan dialog instead of making them hunt for it.
+  const [billingSeatFocus, setBillingSeatFocus] = useState(false);
+
+  const openView = (next: View) => {
+    setBillingSeatFocus(false);
+    setView(next);
+  };
+
+  const openSeatPurchase = () => {
+    setBillingSeatFocus(true);
+    setView("billing");
+  };
 
   const newConsultation = () => {
     clearTranscriptSession();
     setConsultKey((k) => k + 1);
-    setView("consultation");
+    openView("consultation");
   };
 
   const openFromHistory = (id: string) => {
     openTranscriptSession(id);
     setConsultKey((k) => k + 1);
-    setView("consultation");
+    openView("consultation");
   };
 
   useEffect(() => {
@@ -158,12 +173,18 @@ export function App() {
         <NavItem
           label={t("nav.consultation")}
           active={view === "consultation"}
-          onClick={() => setView("consultation")}
+          onClick={() => openView("consultation")}
+        />
+        <NavItem label={t("nav.team")} active={view === "team"} onClick={() => openView("team")} />
+        <NavItem
+          label={t("nav.billing")}
+          active={view === "billing"}
+          onClick={() => openView("billing")}
         />
         <NavItem
           label={t("nav.settings")}
           active={view === "settings"}
-          onClick={() => setView("settings")}
+          onClick={() => openView("settings")}
         />
 
         {/* History: horizontally separated section, vertical scroll */}
@@ -245,8 +266,22 @@ export function App() {
       </aside>
 
       <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", overflowY: "auto" }}>
-        <main style={{ flex: 1, width: "100%", maxWidth: 860, margin: "0 auto", padding: "18px 24px 8px" }}>
-          {view === "consultation" ? <ConsultationScreen key={consultKey} /> : <SettingsScreen />}
+        {/* Team and billing carry wide tables — they get more room than the reading column. */}
+        <main
+          style={{
+            flex: 1,
+            width: "100%",
+            maxWidth: view === "team" || view === "billing" ? 1000 : 860,
+            margin: "0 auto",
+            padding: "18px 24px 8px",
+          }}
+        >
+          {view === "consultation" && <ConsultationScreen key={consultKey} />}
+          {view === "team" && (
+            <TeamScreen currentEmail={email} onManageSeats={openSeatPurchase} />
+          )}
+          {view === "billing" && <BillingScreen openPlanOnMount={billingSeatFocus} />}
+          {view === "settings" && <SettingsScreen />}
         </main>
         <footer
           style={{
