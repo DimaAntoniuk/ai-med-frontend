@@ -97,6 +97,16 @@ creates them. `ownsBilling()` in `src/api/teamTypes.ts` also treats a blank role
 as the same thing, so the purchase path works against a backend that predates that
 answer; without it a solo doctor sees "ask your workspace owner" and cannot pay.
 
+The first two months are free, and wanting to pay is never the hard path. The probe's
+`trial_days` is how long this doctor's *next* purchase would run free — 0 where the
+deployment sells no trial and 0 once the workspace has bought anything, so the offer is
+never advertised twice. Checkout still takes the card, so a trialing workspace is fully
+unlocked, reads as `active`, and carries `trial_ends_at` — the date of the first charge,
+which the subscription card shows in place of the renewal date. An owner who would rather
+start now presses **Start paying now** on the trial banner: `POST /billing/trial/end`
+charges the card on file today and returns the same plan and seat count. It is not a
+cancellation and not a second purchase, and there is no flow here that pretends otherwise.
+
 Roles are `owner` (subscription and billing included), `admin` (members and invitations,
 no billing) and `clinician` (neither). The workspace always keeps at least one active
 owner: the last one cannot be demoted, suspended, or removed. Only an owner may mint

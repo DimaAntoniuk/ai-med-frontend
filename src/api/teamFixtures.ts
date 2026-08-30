@@ -50,6 +50,12 @@ function periodAmountMinor(plan: PlanId, cycle: BillingCycle, seats: number): nu
 
 type StoredSubscription = Omit<SubscriptionDto, "seats_used" | "amount_minor">;
 
+/**
+ * Starts mid-trial so the free-period banner and the "start paying now" path
+ * can be looked at offline — the surface most in need of a second pair of eyes.
+ * The invoice history below is stand-in scenery rather than a coherent Stripe
+ * timeline (a real trial precedes every invoice); see the module note.
+ */
 let subscription: StoredSubscription = {
   plan: "team",
   cycle: "monthly",
@@ -58,6 +64,7 @@ let subscription: StoredSubscription = {
   currency: CURRENCY,
   renews_at: "2026-09-14T00:00:00.000Z",
   cancel_at_period_end: false,
+  trial_ends_at: "2026-09-14T00:00:00.000Z",
 };
 
 let members: MemberDto[] = [
@@ -220,6 +227,9 @@ export const fixtureTeamApi: TeamApi = {
       subscribed: subscription.status !== "canceled" || subscription.cancel_at_period_end,
       role: "owner" as MemberRole,
       subscription: currentSubscription(),
+      // Already spent: this workspace has bought something, so nothing here
+      // should advertise a free period a second time.
+      trial_days: 0,
     }));
   },
 
@@ -261,6 +271,18 @@ export const fixtureTeamApi: TeamApi = {
       cancel_at_period_end: flag,
       status: flag ? "canceled" : "active",
     };
+    return currentSubscription();
+  },
+
+  /**
+   * Wanting to pay is never the hard path: the free period ends today and the
+   * charge falls on the card already taken at checkout. The plan, the cycle and
+   * the seat count are untouched — this is not a cancellation.
+   */
+  async endTrial(): Promise<SubscriptionDto> {
+    await delay(280);
+    if (subscription.trial_ends_at === null) throw new TeamApiError("billing.error.notTrialing");
+    subscription = { ...subscription, trial_ends_at: null };
     return currentSubscription();
   },
 

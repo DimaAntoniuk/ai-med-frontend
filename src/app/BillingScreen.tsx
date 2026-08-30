@@ -3,6 +3,7 @@ import {
   TeamApiError,
   checkoutUrl,
   hasWorkspace,
+  isTrialing,
   ownsBilling,
   periodAmountMinor,
   planById,
@@ -29,7 +30,7 @@ import { Button } from "../design/forms/Button";
 import { Input } from "../design/forms/Input";
 import { useSettings } from "../i18n";
 import type { MessageKey } from "../i18n/strings";
-import { formatDate, formatMoney, formatPeriod } from "./billingFormat";
+import { formatDate, formatMoney, formatPeriod, freePeriod } from "./billingFormat";
 
 const PLAN_NAME: Record<PlanId, MessageKey> = {
   solo: "billing.plan.solo",
@@ -422,6 +423,7 @@ export function BillingScreen({ openPlanOnMount = false }: { openPlanOnMount?: b
   const [profileDraft, setProfileDraft] = useState<BillingProfileDto | null>(null);
   const [profileError, setProfileError] = useState<string | null>(null);
   const [cancelOpen, setCancelOpen] = useState(false);
+  const [trialOpen, setTrialOpen] = useState(false);
 
   const describe = useCallback(
     (e: unknown) => (e instanceof TeamApiError ? t(e.key, e.params) : t("error.generic")),
@@ -587,6 +589,18 @@ export function BillingScreen({ openPlanOnMount = false }: { openPlanOnMount?: b
   const totalKey: MessageKey =
     subscription?.cycle === "annual" ? "billing.total.annual" : "billing.total.monthly";
 
+  const trialEndsAt = isTrialing(subscription) ? subscription!.trial_ends_at : null;
+  /**
+   * Only ever offered on a first purchase: the probe already answers 0 once
+   * this workspace has bought anything, so nothing here advertises a free
+   * period that is spent.
+   */
+  const period = freePeriod(probe.trial_days, locale);
+  const trialOffer =
+    probe.trial_days > 0 && !subscription
+      ? t("billing.trial.offer", { period: t(period.key, { count: period.count }) })
+      : null;
+
   const draftLimits = planDraft ? planById(plans, planDraft.plan) : null;
   const draftSeats = planDraft ? Number(planDraft.seats) : 0;
   const draftValid =
@@ -658,6 +672,25 @@ export function BillingScreen({ openPlanOnMount = false }: { openPlanOnMount?: b
     }
   };
 
+  /**
+   * Wanting to pay must never be the hard path. One call ends the free period
+   * and charges the card taken at checkout — no cancelling, no buying the same
+   * plan a second time, and the seat count is untouched.
+   */
+  const startPaying = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      const next = await teamApi.endTrial();
+      setData({ ...data, subscription: next, probe: { ...probe, subscription: next } });
+      setTrialOpen(false);
+    } catch (e) {
+      setError(describe(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const setCancellation = async (flag: boolean) => {
     setBusy(true);
     setError(null);
@@ -718,6 +751,25 @@ export function BillingScreen({ openPlanOnMount = false }: { openPlanOnMount?: b
         </Alert>
       )}
 
+      {subscription && trialEndsAt && (
+        <Alert
+          tone="info"
+          title={t("billing.trial.title", { date: formatDate(trialEndsAt, locale) })}
+          action={
+            isOwner ? (
+              <Button size="sm" variant="secondary" disabled={busy} onClick={() => setTrialOpen(true)}>
+                {busy ? t("billing.trial.ending") : t("billing.trial.action")}
+              </Button>
+            ) : undefined
+          }
+        >
+          {t("billing.trial.body", {
+            amount: formatMoney(subscription.amount_minor, subscription.currency, locale),
+            date: formatDate(trialEndsAt, locale),
+          })}
+        </Alert>
+      )}
+
       {!subscription && (
         <Card title={t("billing.plan.title")}>
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -733,6 +785,11 @@ export function BillingScreen({ openPlanOnMount = false }: { openPlanOnMount?: b
             <span style={{ fontSize: "var(--text-sm)", color: "var(--text-secondary)" }}>
               {isOwner ? t("billing.empty.body") : t("billing.readOnly")}
             </span>
+            {isOwner && trialOffer && (
+              <span style={{ fontSize: "var(--text-sm)", color: "var(--text-secondary)" }}>
+                {trialOffer}
+              </span>
+            )}
             {isOwner && (
               <div>
                 <Button variant="primary" onClick={() => openPlanDialog(null, plans)}>
@@ -845,7 +902,10 @@ export function BillingScreen({ openPlanOnMount = false }: { openPlanOnMount?: b
 
           {!subscription.cancel_at_period_end && (
             <span style={{ fontSize: "var(--text-sm)", color: "var(--text-tertiary)" }}>
-              {t("billing.renewsOn", { date: formatDate(subscription.renews_at, locale) })}
+              {/* During a trial the period ends into the first charge, not a renewal. */}
+              {trialEndsAt
+                ? t("billing.trial.firstCharge", { date: formatDate(trialEndsAt, locale) })
+                : t("billing.renewsOn", { date: formatDate(subscription.renews_at, locale) })}
             </span>
           )}
         </div>
@@ -1192,6 +1252,11 @@ export function BillingScreen({ openPlanOnMount = false }: { openPlanOnMount?: b
                       perSeat: formatMoney(draftPerSeat, currency, locale),
                     })}
                   </span>
+                  {trialOffer && (
+                    <span style={{ fontSize: "var(--text-xs)", color: "var(--text-secondary)" }}>
+                      {trialOffer}
+                    </span>
+                  )}
                 </div>
               )}
             </div>
@@ -1254,6 +1319,31 @@ export function BillingScreen({ openPlanOnMount = false }: { openPlanOnMount?: b
               }
             />
           </div>
+        )}
+      </Dialog>
+
+      <Dialog
+        open={trialOpen && trialEndsAt !== null}
+        title={t("billing.trial.confirm.title")}
+        width={460}
+        onClose={busy ? undefined : () => setTrialOpen(false)}
+        footer={
+          <>
+            <Button variant="ghost" disabled={busy} onClick={() => setTrialOpen(false)}>
+              {t("billing.trial.confirm.keep")}
+            </Button>
+            <Button variant="primary" disabled={busy} onClick={startPaying}>
+              {busy ? t("billing.trial.ending") : t("billing.trial.confirm.action")}
+            </Button>
+          </>
+        }
+      >
+        {subscription && (
+          <span style={{ fontSize: "var(--text-base)", color: "var(--text-secondary)" }}>
+            {t("billing.trial.confirm.body", {
+              amount: formatMoney(subscription.amount_minor, subscription.currency, locale),
+            })}
+          </span>
         )}
       </Dialog>
 

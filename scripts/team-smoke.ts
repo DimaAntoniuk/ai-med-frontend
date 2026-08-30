@@ -20,10 +20,14 @@ import { fixtureTeamApi as teamApi } from "../src/api/teamFixtures";
 import {
   TeamApiError,
   hasWorkspace,
+  isTrialing,
   ownsBilling,
+  periodAmountMinor,
+  planById,
   type BillingProbeDto,
   type MemberRole,
 } from "../src/api/teamTypes";
+import { freePeriod } from "../src/app/billingFormat";
 import { BillingScreen } from "../src/app/BillingScreen";
 import { TeamScreen } from "../src/app/TeamScreen";
 import { en, uk, type MessageKey } from "../src/i18n/strings";
@@ -207,12 +211,14 @@ async function soloOwnerRules() {
     subscribed: false,
     role,
     subscription: null,
+    trial_days: 60,
   });
   const inWorkspace = async (role: MemberRole): Promise<BillingProbeDto> => ({
     available: true,
     subscribed: true,
     role,
     subscription: await teamApi.getSubscription(),
+    trial_days: 0,
   });
 
   check("solo: a doctor with no workspace may buy one", ownsBilling(nothingBought("owner")));
@@ -221,6 +227,61 @@ async function soloOwnerRules() {
   check("solo: a clinician in a workspace still may not buy", !ownsBilling(await inWorkspace("clinician")));
   check("solo: an admin in a workspace still may not buy", !ownsBilling(await inWorkspace("admin")));
   check("solo: a workspace with a subscription reads as one", hasWorkspace(await inWorkspace("owner")));
+}
+
+/**
+ * The free period is a default, not a lock: a doctor who would rather pay now
+ * must be one call away from doing so, and that call is neither a cancellation
+ * nor a second purchase. Ordered last — it spends the stand-in's trial.
+ */
+async function trialRules() {
+  const trialing = (await teamApi.getSubscription())!;
+  check(
+    "trial: a trialing workspace is unlocked, not pending",
+    isTrialing(trialing) && trialing.status === "active",
+    `status=${trialing.status} trial_ends_at=${trialing.trial_ends_at}`,
+  );
+  // Not a placeholder and not zero: what the free period defers is exactly
+  // what the plan costs, so the doctor knows the number before it is charged.
+  const priced = planById(await teamApi.listPlans(), trialing.plan);
+  check(
+    "trial: the amount quoted is what the first charge will be",
+    priced !== null &&
+      trialing.amount_minor === periodAmountMinor(priced, trialing.cycle, trialing.seats_total),
+    `amount=${trialing.amount_minor}`,
+  );
+
+  const paying = await teamApi.endTrial();
+  check(
+    "trial: paying early leaves the plan and the seats exactly as they were",
+    !isTrialing(paying) &&
+      paying.plan === trialing.plan &&
+      paying.seats_total === trialing.seats_total &&
+      paying.status === "active",
+    JSON.stringify(paying),
+  );
+
+  await rejects("trial: there is nothing to end once it has ended", "billing.error.notTrialing", () =>
+    teamApi.endTrial(),
+  );
+
+  // Whole months are said in months; anything else stays in days rather than
+  // rounding the offer. Both dictionaries carry every plural category.
+  const cases: [number, string, number][] = [
+    [60, "month", 2],
+    [30, "month", 1],
+    [14, "day", 14],
+  ];
+  for (const [days, unit, count] of cases) {
+    for (const locale of ["en", "uk"] as const) {
+      const { key, count: said } = freePeriod(days, locale);
+      check(
+        `trial: ${days} free days read as ${count} ${unit}(s) in ${locale}`,
+        key.startsWith(`billing.trial.${unit}.`) && said === count && Boolean(en[key] && uk[key]),
+        `${key} -> ${said}`,
+      );
+    }
+  }
 }
 
 /** Every {placeholder} an English string interpolates must survive translation. */
@@ -266,6 +327,7 @@ async function main() {
   await seatRules();
   await subscriptionRules();
   await billingDetailRules();
+  await trialRules();
 
   if (failures > 0) {
     console.error(`\n${failures} check(s) failed.`);

@@ -107,6 +107,15 @@ const liveTeamApi: TeamApi = {
     });
   },
 
+  /**
+   * Wanting to pay is never the hard path: this ends the free period today and
+   * charges the card taken at checkout. Nothing is cancelled and nothing is
+   * bought twice — the plan and the seat count come back unchanged.
+   */
+  endTrial(): Promise<SubscriptionDto> {
+    return send<SubscriptionDto>("POST", "/billing/trial/end");
+  },
+
   getPaymentMethod(): Promise<PaymentMethodDto | null> {
     return call<PaymentMethodDto | null>("/billing/payment-method");
   },

@@ -37,6 +37,12 @@ export interface SubscriptionDto {
   renews_at: string;
   /** Cancellation is deferred: access lasts until `renews_at`. */
   cancel_at_period_end: boolean;
+  /**
+   * Set only while the free period runs, and equal to `renews_at` then: the
+   * trial ends into the first charge. `status` still reads `active` and the
+   * workspace is fully unlocked — a trial is the product, not a waiting room.
+   */
+  trial_ends_at: string | null;
 }
 
 /** Only the brand and last four digits are ever held frontend-side. */
@@ -91,6 +97,12 @@ export interface BillingProbeDto {
   subscribed: boolean;
   role: MemberRole | "";
   subscription: SubscriptionDto | null;
+  /**
+   * Free days this doctor's *next* purchase would run — 0 where the deployment
+   * sells no trial, and 0 once the workspace has bought anything, so a screen
+   * never advertises a free period that is already spent.
+   */
+  trial_days: number;
 }
 
 /**
@@ -114,6 +126,15 @@ export function hasWorkspace(probe: BillingProbeDto): boolean {
  */
 export function ownsBilling(probe: BillingProbeDto): boolean {
   return probe.role === "owner" || (probe.role === "" && !hasWorkspace(probe));
+}
+
+/**
+ * Is the free period still running? It is not a lesser state — the workspace is
+ * unlocked and `status` says `active` — only the answer to "has anything been
+ * charged yet", which decides whether "start paying now" has anything to do.
+ */
+export function isTrialing(subscription: SubscriptionDto | null): boolean {
+  return subscription?.trial_ends_at != null;
 }
 
 /**
@@ -164,6 +185,8 @@ export interface TeamApi {
     seats: number;
   }): Promise<SubscriptionDto>;
   setCancelAtPeriodEnd(flag: boolean): Promise<SubscriptionDto>;
+  /** Bring the first charge forward to today; the plan and seats do not change. */
+  endTrial(): Promise<SubscriptionDto>;
   getPaymentMethod(): Promise<PaymentMethodDto | null>;
   /** Answers a Stripe-hosted URL to navigate to — the card never reaches us. */
   startPaymentMethodUpdate(): Promise<{ url: string }>;
