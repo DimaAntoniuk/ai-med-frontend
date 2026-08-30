@@ -89,6 +89,14 @@ history but frees the seat. Inviting past the limit is refused with a localized 
 a link into the plan dialog, rather than failing silently — and the plan dialog refuses to
 drop the seat count below the seats already in use.
 
+A doctor signing up alone is the owner of the workspace their first purchase creates:
+`GET /billing` answers `role: "owner"` with no subscription, and the two screens read a
+probe carrying no `subscription` as *no workspace yet* — the plan dialog is offered, the
+roster, card and invoices are not asked for, because those routes 403 until checkout
+creates them. `ownsBilling()` in `src/api/teamTypes.ts` also treats a blank role there
+as the same thing, so the purchase path works against a backend that predates that
+answer; without it a solo doctor sees "ask your workspace owner" and cannot pay.
+
 Roles are `owner` (subscription and billing included), `admin` (members and invitations,
 no billing) and `clinician` (neither). The workspace always keeps at least one active
 owner: the last one cannot be demoted, suspended, or removed. Only an owner may mint

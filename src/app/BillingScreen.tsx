@@ -2,6 +2,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   TeamApiError,
   checkoutUrl,
+  hasWorkspace,
+  ownsBilling,
   periodAmountMinor,
   planById,
   portalUrl,
@@ -430,7 +432,9 @@ export function BillingScreen({ openPlanOnMount = false }: { openPlanOnMount?: b
    * The probe decides how much of this screen exists at all: billing may be off
    * on this deployment, and the card, invoices and profile are the owner's
    * alone — asking for them as an admin would earn a 403 for a control that
-   * should never have been rendered.
+   * should never have been rendered. They are also the *workspace's*, and a
+   * doctor who has not bought anything yet has none: for them this screen is
+   * one plan dialog, and the three routes would 403 the same way.
    */
   const load = useCallback(async (): Promise<BillingData> => {
     const probe = await teamApi.probe();
@@ -438,7 +442,7 @@ export function BillingScreen({ openPlanOnMount = false }: { openPlanOnMount?: b
       return { probe, subscription: null, plans: [], payment: null, profile: null, invoices: [] };
     }
     const plans = await teamApi.listPlans();
-    if (probe.role !== "owner") {
+    if (!ownsBilling(probe) || !hasWorkspace(probe)) {
       return { probe, subscription: probe.subscription, plans, payment: null, profile: null, invoices: [] };
     }
     const [subscription, payment, profile, invoices] = await Promise.all([
@@ -536,7 +540,7 @@ export function BillingScreen({ openPlanOnMount = false }: { openPlanOnMount?: b
   const focusHandled = useRef(false);
   useEffect(() => {
     if (!openPlanOnMount || focusHandled.current || !data) return;
-    if (!data.probe.available || data.probe.role !== "owner") return;
+    if (!data.probe.available || !ownsBilling(data.probe)) return;
     focusHandled.current = true;
     openPlanDialog(data.subscription, data.plans);
   }, [openPlanOnMount, data, openPlanDialog]);
@@ -569,8 +573,10 @@ export function BillingScreen({ openPlanOnMount = false }: { openPlanOnMount?: b
   }
 
   // The card, the invoices and the invoice header are the owner's alone — every
-  // route behind them answers 403 to anyone else, so no control is offered.
-  const isOwner = probe.role === "owner";
+  // route behind them answers 403 to anyone else, so no control is offered. A
+  // doctor with no workspace yet counts: the plan they choose is what creates
+  // one, with them as its owner.
+  const isOwner = ownsBilling(probe);
 
   const freeSeats = subscription
     ? Math.max(subscription.seats_total - subscription.seats_used, 0)

@@ -17,7 +17,13 @@ import { renderToString } from "react-dom/server";
 // backend, which a smoke test has no business needing. The rules asserted below
 // are the stand-in's copy of the backend's — see `src/api/teamFixtures.ts`.
 import { fixtureTeamApi as teamApi } from "../src/api/teamFixtures";
-import { TeamApiError } from "../src/api/teamTypes";
+import {
+  TeamApiError,
+  hasWorkspace,
+  ownsBilling,
+  type BillingProbeDto,
+  type MemberRole,
+} from "../src/api/teamTypes";
 import { BillingScreen } from "../src/app/BillingScreen";
 import { TeamScreen } from "../src/app/TeamScreen";
 import { en, uk, type MessageKey } from "../src/i18n/strings";
@@ -188,6 +194,35 @@ async function billingDetailRules() {
   check("invoices: history is returned newest first", invoices[0]?.number === "INV-2026-0008");
 }
 
+/**
+ * A doctor signing up alone owns the workspace their first purchase creates:
+ * checkout provisions it with them as owner. The probe may say that outright —
+ * "owner" with nothing bought — or, on a backend that predates saying so, carry
+ * no role at all. Both mean the same thing, and reading either as "someone else
+ * owns this" leaves a solo doctor on a locked screen with no way to pay.
+ */
+async function soloOwnerRules() {
+  const nothingBought = (role: MemberRole | ""): BillingProbeDto => ({
+    available: true,
+    subscribed: false,
+    role,
+    subscription: null,
+  });
+  const inWorkspace = async (role: MemberRole): Promise<BillingProbeDto> => ({
+    available: true,
+    subscribed: true,
+    role,
+    subscription: await teamApi.getSubscription(),
+  });
+
+  check("solo: a doctor with no workspace may buy one", ownsBilling(nothingBought("owner")));
+  check("solo: the same when the backend states no role", ownsBilling(nothingBought("")));
+  check("solo: there is no roster to ask for yet", !hasWorkspace(nothingBought("owner")));
+  check("solo: a clinician in a workspace still may not buy", !ownsBilling(await inWorkspace("clinician")));
+  check("solo: an admin in a workspace still may not buy", !ownsBilling(await inWorkspace("admin")));
+  check("solo: a workspace with a subscription reads as one", hasWorkspace(await inWorkspace("owner")));
+}
+
 /** Every {placeholder} an English string interpolates must survive translation. */
 function placeholders(text: string): string[] {
   return (text.match(/\{[a-zA-Z]+\}/g) ?? []).sort();
@@ -227,6 +262,7 @@ function screens() {
 async function main() {
   dictionaries();
   screens();
+  await soloOwnerRules();
   await seatRules();
   await subscriptionRules();
   await billingDetailRules();

@@ -94,6 +94,29 @@ export interface BillingProbeDto {
 }
 
 /**
+ * Is there a workspace behind this doctor yet? Someone who has signed in but
+ * never bought anything has none, and the probe says so by carrying no
+ * subscription. There is no roster to list, no card on file and no invoice
+ * history until the first checkout creates them — those routes answer 403
+ * until then, so nothing should ask.
+ */
+export function hasWorkspace(probe: BillingProbeDto): boolean {
+  return probe.subscription !== null;
+}
+
+/**
+ * May this doctor buy, and change what was bought? A doctor signing up alone
+ * owns the workspace their first purchase creates — checkout provisions it with
+ * them as its owner — so the purchase controls are theirs from the start.
+ * Reading a workspace-less probe as "someone else owns this" would leave a solo
+ * doctor staring at a locked screen with no way to pay. Backends that answer a
+ * blank role there rather than "owner" mean the same thing.
+ */
+export function ownsBilling(probe: BillingProbeDto): boolean {
+  return probe.role === "owner" || (probe.role === "" && !hasWorkspace(probe));
+}
+
+/**
  * Rejection carrying a message key, so screens localize the reason instead of
  * printing a server string. The backend answers `{ "detail": "<key>",
  * "params": {…} }` — `params` carries the interpolations the key needs.

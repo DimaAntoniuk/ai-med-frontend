@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   TeamApiError,
+  hasWorkspace,
+  ownsBilling,
   teamApi,
   usingTeamFixtures,
   type BillingProbeDto,
@@ -56,6 +58,17 @@ function displayName(member: MemberDto): string {
 }
 
 /**
+ * Is there a roster to ask for? `GET /team/members` is owner/admin work, and it
+ * needs a workspace to read: before the first checkout no organization exists
+ * and the route answers 403 rather than an empty list.
+ */
+function canListRoster(probe: BillingProbeDto): boolean {
+  return (
+    probe.available && hasWorkspace(probe) && probe.role !== "clinician" && probe.role !== ""
+  );
+}
+
+/**
  * Team member management for the shared subscription: who holds a seat, what
  * they may do, and the invitations still outstanding. Every seat-consuming
  * action is checked against the subscription, so running out of seats sends
@@ -97,9 +110,7 @@ export function TeamScreen({
   const reload = useCallback(async () => {
     const nextProbe = await teamApi.probe();
     setProbe(nextProbe);
-    if (nextProbe.available && nextProbe.role !== "clinician" && nextProbe.role !== "") {
-      setMembers(await teamApi.listMembers());
-    }
+    if (canListRoster(nextProbe)) setMembers(await teamApi.listMembers());
   }, []);
 
   useEffect(() => {
@@ -109,7 +120,7 @@ export function TeamScreen({
       .then(async (next) => {
         if (!live) return;
         setProbe(next);
-        if (!next.available || next.role === "clinician" || next.role === "") return;
+        if (!canListRoster(next)) return;
         const list = await teamApi.listMembers();
         if (live) setMembers(list);
       })
@@ -138,11 +149,30 @@ export function TeamScreen({
 
   // The roster is owner/admin work. A clinician reaching `/team/members` gets a
   // 403, so the screen says so rather than rendering controls that cannot work.
-  const canManage = probe.role === "owner" || probe.role === "admin";
+  const canManage = probe.role === "admin" || ownsBilling(probe);
   if (!canManage) {
     return (
       <Alert tone="info" title={t("team.title")}>
         {t("team.error.notPermitted")}
+      </Alert>
+    );
+  }
+
+  // Signed in, nothing bought: there is no workspace to hold colleagues yet.
+  // Seats are what a subscription buys, so the way in is the billing screen —
+  // saying that beats a roster screen that can only ever be empty.
+  if (!hasWorkspace(probe)) {
+    return (
+      <Alert
+        tone="info"
+        title={t("team.empty.title")}
+        action={
+          <Button size="sm" variant="secondary" onClick={onManageSeats}>
+            {t("team.empty.action")}
+          </Button>
+        }
+      >
+        {t("team.empty.body")}
       </Alert>
     );
   }

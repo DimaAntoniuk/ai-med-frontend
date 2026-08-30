@@ -213,6 +213,10 @@ export const en = {
 
   "team.title": "Team",
   "team.loading": "Loading the team…",
+  "team.empty.title": "A workspace starts with a plan",
+  "team.empty.body":
+    "Seats are what a subscription buys. Choose a plan and you can invite colleagues, set what each of them may do, and free a seat when someone leaves.",
+  "team.empty.action": "Choose a plan",
   "team.invite": "Invite member",
   "team.invite.title": "Invite a member",
   "team.invite.subtitle": "They receive a one-time sign-in code at this address.",
@@ -604,6 +608,10 @@ export const uk: Record<MessageKey, string> = {
 
   "team.title": "Команда",
   "team.loading": "Завантаження команди…",
+  "team.empty.title": "Робочий простір починається з тарифу",
+  "team.empty.body":
+    "Місця дає підписка. Оберіть тариф — і зможете запрошувати колег, визначати права кожного та звільняти місце, коли хтось іде.",
+  "team.empty.action": "Обрати тариф",
   "team.invite": "Запросити учасника",
   "team.invite.title": "Запросити учасника",
   "team.invite.subtitle": "На цю адресу надійде одноразовий код для входу.",
