@@ -13,7 +13,11 @@
  */
 import { createElement } from "react";
 import { renderToString } from "react-dom/server";
-import { TeamApiError, teamApi } from "../src/api/team";
+// The offline stand-in, deliberately: the live client speaks HTTP to a running
+// backend, which a smoke test has no business needing. The rules asserted below
+// are the stand-in's copy of the backend's — see `src/api/teamFixtures.ts`.
+import { fixtureTeamApi as teamApi } from "../src/api/teamFixtures";
+import { TeamApiError } from "../src/api/teamTypes";
 import { BillingScreen } from "../src/app/BillingScreen";
 import { TeamScreen } from "../src/app/TeamScreen";
 import { en, uk, type MessageKey } from "../src/i18n/strings";
@@ -46,7 +50,7 @@ async function rejects(label: string, key: MessageKey, run: () => Promise<unknow
 }
 
 async function seatRules() {
-  const start = await teamApi.getSubscription();
+  const start = (await teamApi.getSubscription())!;
   check(
     "seats: a suspended member does not hold a seat",
     start.seats_used === 5 && start.seats_total === 6,
@@ -68,7 +72,7 @@ async function seatRules() {
   const invited = await teamApi.inviteMember("nova.likarka@clinic.example", "clinician");
   check("invite: the new member starts as invited", invited.status === "invited", invited.status);
 
-  const afterInvite = await teamApi.getSubscription();
+  const afterInvite = (await teamApi.getSubscription())!;
   check(
     "invite: an outstanding invitation consumes a seat",
     afterInvite.seats_used === 6,
@@ -96,7 +100,7 @@ async function seatRules() {
   );
 
   await teamApi.setMemberStatus("m-4", "suspended");
-  const afterSuspend = await teamApi.getSubscription();
+  const afterSuspend = (await teamApi.getSubscription())!;
   check(
     "suspend: frees the seat the member held",
     afterSuspend.seats_used === 5,
@@ -141,24 +145,17 @@ async function subscriptionRules() {
 }
 
 async function billingDetailRules() {
-  await rejects("card: rejects a number that is not card-length", "billing.error.cardNumber", () =>
-    teamApi.updatePaymentMethod({ number: "4242", expiry: "04/29", holder: "A B" }),
-  );
-  await rejects("card: rejects an expiry in the past", "billing.error.cardExpiry", () =>
-    teamApi.updatePaymentMethod({ number: "4242424242424242", expiry: "04/20", holder: "A B" }),
-  );
-  await rejects("card: rejects a missing cardholder", "billing.error.cardHolder", () =>
-    teamApi.updatePaymentMethod({ number: "4242424242424242", expiry: "04/31", holder: "  " }),
+  // The card is the payment provider's to collect: no PAN is ever posted here,
+  // so there is no card validation to test — only that the app asks for a
+  // hosted page and has somewhere to send the reader.
+  await rejects("card: the offline stand-in has no hosted page to open", "billing.error.fixtureCard", () =>
+    teamApi.startPaymentMethodUpdate(),
   );
 
-  const card = await teamApi.updatePaymentMethod({
-    number: "5555 4444 3333 1111",
-    expiry: "11/30",
-    holder: "olena kovalchuk",
-  });
+  const card = await teamApi.getPaymentMethod();
   check(
-    "card: keeps only the brand and the last four digits",
-    card.brand === "mastercard" && card.last4 === "1111" && card.holder === "OLENA KOVALCHUK",
+    "card: only the brand and the last four digits are held frontend-side",
+    card !== null && card.brand === "visa" && card.last4 === "4242",
     JSON.stringify(card),
   );
 

@@ -1,0 +1,30 @@
+services:
+  web:
+    build:
+      context: .
+      args:
+        # Baked into the bundle at build time. The browser runs on the host, so
+        # this is the backend's published port, not a compose service name.
+        VITE_API_BASE: ${VITE_API_BASE:-http://localhost:8000}
+        # Booking link for the sales-led plan; no link, no button.
+        VITE_CONTACT_SALES_URL: ${VITE_CONTACT_SALES_URL:-}
+    ports:
+      # 5173 on the host so the backend's default CORS_ORIGINS still matches.
+      - "5173:80"
+    restart: unless-stopped
+
+  # Same bundle with the offline team/billing stand-in compiled in, for looking
+  # at those two screens where the backend has no payment provider configured
+  # (`GET /billing` → available: false). Opt in: docker compose --profile review up -d
+  web-review:
+    profiles: ["review"]
+    build:
+      context: .
+      args:
+        VITE_API_BASE: ${VITE_API_BASE:-http://localhost:8000}
+        # Booking link for the sales-led plan; no link, no button.
+        VITE_CONTACT_SALES_URL: ${VITE_CONTACT_SALES_URL:-}
+        VITE_TEAM_FIXTURES: "1"
+    ports:
+      - "5174:80"
+    restart: unless-stopped

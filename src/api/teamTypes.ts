@@ -1,0 +1,156 @@
+/**
+ * Wire types for the team/billing surface, shared by the live client
+ * (`./team`) and the offline stand-in (`./teamFixtures`).
+ *
+ * These are field-for-field what the backend serves — see
+ * `ai-med-agent/docs/fe-billing.md`.
+ */
+import type { MessageKey } from "../i18n/strings";
+
+export type PlanId = "solo" | "team" | "clinic";
+export type BillingCycle = "monthly" | "annual";
+export type MemberRole = "owner" | "admin" | "clinician";
+export type MemberStatus = "active" | "invited" | "suspended";
+export type SubscriptionStatus = "active" | "past_due" | "canceled";
+export type InvoiceStatus = "paid" | "open" | "failed";
+
+/** Catalogue entry. Prices are per seat per month, in minor units (kopiykas). */
+export interface PlanDto {
+  id: PlanId;
+  monthly_minor: number;
+  /** Per-month price when the year is paid up front. */
+  annual_minor: number;
+  min_seats: number;
+  max_seats: number;
+}
+
+export interface SubscriptionDto {
+  plan: PlanId;
+  cycle: BillingCycle;
+  status: SubscriptionStatus;
+  seats_total: number;
+  /** Seats held by active members and outstanding invitations. */
+  seats_used: number;
+  currency: string;
+  /** Charge for one whole period — the annual cycle bills twelve months. */
+  amount_minor: number;
+  renews_at: string;
+  /** Cancellation is deferred: access lasts until `renews_at`. */
+  cancel_at_period_end: boolean;
+}
+
+/** Only the brand and last four digits are ever held frontend-side. */
+export interface PaymentMethodDto {
+  brand: string;
+  last4: string;
+  exp_month: number;
+  exp_year: number;
+  holder: string;
+}
+
+/** Invoice header for a Ukrainian legal entity — `tax_id` is the ЄДРПОУ/ІПН. */
+export interface BillingProfileDto {
+  company: string;
+  tax_id: string;
+  email: string;
+  address: string;
+}
+
+export interface InvoiceDto {
+  id: string;
+  number: string;
+  issued_at: string;
+  period_start: string;
+  period_end: string;
+  seats: number;
+  amount_minor: number;
+  currency: string;
+  status: InvoiceStatus;
+}
+
+export interface MemberDto {
+  id: string;
+  /** Empty until a display name exists anywhere — render the address instead. */
+  name: string;
+  email: string;
+  role: MemberRole;
+  status: MemberStatus;
+  /** null while an invitation is outstanding. */
+  last_active_at: string | null;
+}
+
+/**
+ * `GET /billing` — the one billing route that never 404s.
+ *
+ * `available: false` means this deployment has no billing configured at all:
+ * hide the whole team/billing surface. `subscribed` is the only field an app
+ * gate should read.
+ */
+export interface BillingProbeDto {
+  available: boolean;
+  subscribed: boolean;
+  role: MemberRole | "";
+  subscription: SubscriptionDto | null;
+}
+
+/**
+ * Rejection carrying a message key, so screens localize the reason instead of
+ * printing a server string. The backend answers `{ "detail": "<key>",
+ * "params": {…} }` — `params` carries the interpolations the key needs.
+ */
+export class TeamApiError extends Error {
+  constructor(
+    public readonly key: MessageKey,
+    public readonly params?: Record<string, string | number>,
+    /** HTTP status, so a screen can tell 403 (hide the control) from 409. */
+    public readonly status = 0,
+  ) {
+    super(key);
+    this.name = "TeamApiError";
+  }
+}
+
+/** Per-seat, per-month price for a plan on a cycle. */
+export function seatPriceMinor(plan: PlanDto, cycle: BillingCycle): number {
+  return cycle === "annual" ? plan.annual_minor : plan.monthly_minor;
+}
+
+/**
+ * What one period costs: the annual cycle charges twelve months up front.
+ *
+ * This is a *preview* only — the authoritative `amount_minor` comes back on the
+ * `SubscriptionDto` the server returns after the change.
+ */
+export function periodAmountMinor(plan: PlanDto, cycle: BillingCycle, seats: number): number {
+  return seatPriceMinor(plan, cycle) * seats * (cycle === "annual" ? 12 : 1);
+}
+
+/** Look a plan up in a server-served catalogue; falls back to the first entry. */
+export function planById(plans: readonly PlanDto[], id: PlanId): PlanDto | null {
+  return plans.find((p) => p.id === id) ?? null;
+}
+
+/** The surface both the live client and the stand-in implement. */
+export interface TeamApi {
+  probe(): Promise<BillingProbeDto>;
+  listPlans(): Promise<PlanDto[]>;
+  getSubscription(): Promise<SubscriptionDto | null>;
+  changeSubscription(next: {
+    plan: PlanId;
+    cycle: BillingCycle;
+    seats: number;
+  }): Promise<SubscriptionDto>;
+  setCancelAtPeriodEnd(flag: boolean): Promise<SubscriptionDto>;
+  getPaymentMethod(): Promise<PaymentMethodDto | null>;
+  /** Answers a Stripe-hosted URL to navigate to — the card never reaches us. */
+  startPaymentMethodUpdate(): Promise<{ url: string }>;
+  getBillingProfile(): Promise<BillingProfileDto>;
+  updateBillingProfile(next: BillingProfileDto): Promise<BillingProfileDto>;
+  listInvoices(): Promise<InvoiceDto[]>;
+  listMembers(): Promise<MemberDto[]>;
+  inviteMember(email: string, role: MemberRole): Promise<MemberDto>;
+  updateMemberRole(id: string, role: MemberRole): Promise<MemberDto>;
+  setMemberStatus(id: string, status: "active" | "suspended"): Promise<MemberDto>;
+  resendInvite(id: string): Promise<MemberDto>;
+  removeMember(id: string): Promise<void>;
+}

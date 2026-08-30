@@ -2,10 +2,11 @@ import { useCallback, useEffect, useState } from "react";
 import {
   TeamApiError,
   teamApi,
+  usingTeamFixtures,
+  type BillingProbeDto,
   type MemberDto,
   type MemberRole,
   type MemberStatus,
-  type SubscriptionDto,
 } from "../api/team";
 import { Badge } from "../design/data/Badge";
 import { Card } from "../design/data/Card";
@@ -69,7 +70,7 @@ export function TeamScreen({
 }) {
   const { t, locale } = useSettings();
   const [members, setMembers] = useState<MemberDto[] | null>(null);
-  const [subscription, setSubscription] = useState<SubscriptionDto | null>(null);
+  const [probe, setProbe] = useState<BillingProbeDto | null>(null);
   const [filter, setFilter] = useState<Filter>("all");
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -88,38 +89,76 @@ export function TeamScreen({
     [t],
   );
 
-  /** Members and the subscription move together — a seat count is only true of both. */
+  /**
+   * Members and the seat count move together — a seat count is only true of
+   * both. The count comes off the probe rather than `GET /billing/subscription`
+   * because that route is the owner's alone, and an admin runs this screen too.
+   */
   const reload = useCallback(async () => {
-    const [nextMembers, nextSubscription] = await Promise.all([
-      teamApi.listMembers(),
-      teamApi.getSubscription(),
-    ]);
-    setMembers(nextMembers);
-    setSubscription(nextSubscription);
+    const nextProbe = await teamApi.probe();
+    setProbe(nextProbe);
+    if (nextProbe.available && nextProbe.role !== "clinician" && nextProbe.role !== "") {
+      setMembers(await teamApi.listMembers());
+    }
   }, []);
 
   useEffect(() => {
     let live = true;
     teamApi
-      .listMembers()
-      .then((list) => live && setMembers(list))
-      .catch((e) => live && setError(describe(e)));
-    teamApi
-      .getSubscription()
-      .then((sub) => live && setSubscription(sub))
+      .probe()
+      .then(async (next) => {
+        if (!live) return;
+        setProbe(next);
+        if (!next.available || next.role === "clinician" || next.role === "") return;
+        const list = await teamApi.listMembers();
+        if (live) setMembers(list);
+      })
       .catch((e) => live && setError(describe(e)));
     return () => {
       live = false;
     };
   }, [describe]);
 
-  if (!members || !subscription) {
+  if (!probe) {
     return (
       <span style={{ fontSize: "var(--text-sm)", color: "var(--text-tertiary)" }}>
         {t("team.loading")}
       </span>
     );
   }
+
+  // No payment provider on this deployment: there are no seats to manage.
+  if (!probe.available) {
+    return (
+      <Alert tone="info" title={t("team.unavailable.title")}>
+        {t("team.unavailable.body")}
+      </Alert>
+    );
+  }
+
+  // The roster is owner/admin work. A clinician reaching `/team/members` gets a
+  // 403, so the screen says so rather than rendering controls that cannot work.
+  const canManage = probe.role === "owner" || probe.role === "admin";
+  if (!canManage) {
+    return (
+      <Alert tone="info" title={t("team.title")}>
+        {t("team.error.notPermitted")}
+      </Alert>
+    );
+  }
+
+  const subscription = probe.subscription;
+  if (!members || !subscription) {
+    return (
+      <span style={{ fontSize: "var(--text-sm)", color: "var(--text-tertiary)" }}>
+        {members && !subscription ? t("billing.error.required") : t("team.loading")}
+      </span>
+    );
+  }
+
+  // Only an owner may mint another owner; an admin promoting one gets a 403.
+  const assignableRoles = (row: MemberDto): MemberRole[] =>
+    probe.role === "owner" || row.role === "owner" ? ROLES : ROLES.filter((r) => r !== "owner");
 
   const freeSeats = Math.max(subscription.seats_total - subscription.seats_used, 0);
   const counts: Record<Filter, number> = {
@@ -220,9 +259,11 @@ export function TeamScreen({
           tone="warning"
           title={t("team.seats.full.title", { total: subscription.seats_total })}
           action={
-            <Button size="sm" variant="secondary" onClick={onManageSeats}>
-              {t("team.seats.add")}
-            </Button>
+            probe.role === "owner" ? (
+              <Button size="sm" variant="secondary" onClick={onManageSeats}>
+                {t("team.seats.add")}
+              </Button>
+            ) : undefined
           }
         >
           {t("team.seats.full.body")}
@@ -254,9 +295,11 @@ export function TeamScreen({
           </div>
         }
         footer={
-          <span style={{ fontSize: "var(--text-xs)", color: "var(--text-tertiary)" }}>
-            {t("team.backendNote")}
-          </span>
+          usingTeamFixtures ? (
+            <span style={{ fontSize: "var(--text-xs)", color: "var(--text-tertiary)" }}>
+              {t("team.backendNote")}
+            </span>
+          ) : undefined
         }
       >
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -314,7 +357,10 @@ export function TeamScreen({
                     onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
                       changeRole(row, e.target.value as MemberRole)
                     }
-                    options={ROLES.map((role) => ({ value: role, label: t(ROLE_NAME[role]) }))}
+                    options={assignableRoles(row).map((role) => ({
+                      value: role,
+                      label: t(ROLE_NAME[role]),
+                    }))}
                     style={{ minWidth: 148 }}
                   />
                 ),
@@ -445,11 +491,13 @@ export function TeamScreen({
               name="invite-role"
               value={inviteRole}
               onChange={(value: string) => setInviteRole(value as MemberRole)}
-              options={ROLES.map((role) => ({
-                value: role,
-                label: t(ROLE_NAME[role]),
-                description: t(ROLE_DESC[role]),
-              }))}
+              options={ROLES.filter((role) => role !== "owner" || probe.role === "owner").map(
+                (role) => ({
+                  value: role,
+                  label: t(ROLE_NAME[role]),
+                  description: t(ROLE_DESC[role]),
+                }),
+              )}
             />
           </div>
         </div>

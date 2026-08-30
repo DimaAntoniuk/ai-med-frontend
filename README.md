@@ -59,6 +59,25 @@ answers 401. All requests carry `credentials: "include"`; the `EventSource` uses
 `withCredentials`. Without SMTP configured (`SMTP_HOST` empty) the backend logs the
 one-time code in the api process log — grep for `OTP for`.
 
+`GET /auth/methods` decides what the sign-in screen offers. Where the backend has
+WorkOS credentials it answers `sso: true` and the screen adds **Continue with single
+sign-on**, which *navigates* to `/auth/sso/start` — a fetch is wrong there and fails
+confusingly (the response redirects to workos.com, and the short-lived state cookie
+would ride on an XHR the browser discards). WorkOS returns the browser to the app
+either cleanly or with `?login_error=`, which the screen translates and then strips
+from the URL. `restricted: true` says the deployment is corporate-login-only, and the
+screen says so before the doctor types — an outside address gets the same 202 with no
+code, otherwise indistinguishable from a lost email. Signing out follows
+`sign_out_url` when the provider returns one; skipping that navigation would let the
+next person at a shared workstation back in as the doctor who just left.
+
+After the first sign-in the app asks for a **name and clinical role** and keeps them
+in this browser, keyed to the account (`src/api/profile.ts`); Settings edits them.
+The backend stores neither today — `GET /auth/me` answers email, subject and expiry —
+so that module is the single seam to swap when a profile route lands. The clinical
+role is for wording and defaults only; what a doctor may *do* is the team role an
+owner assigned, which the API decides on every request.
+
 ## Team subscription
 
 **Team** and **Billing** in the sidebar manage a shared workspace: who holds a seat, what
@@ -71,18 +90,46 @@ a link into the plan dialog, rather than failing silently — and the plan dialo
 drop the seat count below the seats already in use.
 
 Roles are `owner` (subscription and billing included), `admin` (members and invitations,
-no billing) and `clinician`. The workspace always keeps at least one active owner: the
-last one cannot be demoted, suspended, or removed.
+no billing) and `clinician` (neither). The workspace always keeps at least one active
+owner: the last one cannot be demoted, suspended, or removed. Only an owner may mint
+another owner, so the role select and the invite dialog drop that option for admins.
 
-The backend has no `/team` or `/billing` routes yet, so `src/api/team.ts` holds the
-**proposed wire contract next to an in-memory stand-in that answers it** — nothing there
-reaches the network, and changes live for the lifetime of the tab. Both screens say so on
-the page. When the backend ships, the fixture bodies become `request()` calls (as in
-`src/api/client.ts`) and neither screen changes. Rejections carry a `MessageKey` instead
-of a server string, so the backend is asked to answer the same set as `{"detail": "<key>"}`.
+`src/api/team.ts` is the live HTTP client for the backend contract in
+`../ai-med-agent/docs/fe-billing.md`. Rejections arrive as `{"detail": "<message key>",
+"params": {…}}`, so screens localize the reason instead of printing a server sentence.
+`src/api/teamFixtures.ts` keeps the old in-memory stand-in for opening the screens on a
+laptop with no payment provider configured — it is off unless `VITE_TEAM_FIXTURES=1`, and
+nothing should be demoed or accepted against it.
 
-Prices are per seat per month in minor units (kopiykas), UAH; the annual cycle bills twelve
-months up front. Invoice headers carry the ЄДРПОУ/ІПН that Ukrainian legal entities need.
+A plan the backend does not list is unpriced, and for `clinic` that is the intended
+state: it is sold by a conversation, so the plan dialog renders it as a non-selectable
+card reading *Let's talk* with a **Book a demo** button. The button appears only when
+`VITE_CONTACT_SALES_URL` is set at build time (a compose variable of the same name) —
+a dead link is worse than no link. Price the plan in Stripe and it becomes an ordinary
+selectable card with no code change.
+
+Three route shapes are worth knowing before reading the screens:
+
+- **`GET /billing` is the probe**, and the one billing route that never 404s. It answers
+  `available` (is billing configured at all), `subscribed`, the caller's `role`, and the
+  subscription. Both screens load it first and ask for nothing their role cannot have —
+  the card, invoices and billing profile are the owner's alone and 403 for anyone else.
+- **`/billing/checkout/start` and `/billing/portal/start` are navigations**, not fetches.
+  They answer 307 to a page on the provider's own domain, so an XHR is either blocked by
+  CORS or silently handed HTML. The card number never reaches this app or the backend;
+  `POST /billing/payment-method` returns a hosted URL to send the browser to.
+- **402 is not 401.** Any clinical route may answer 402 when the workspace has no active
+  subscription or the member is suspended. The client raises a `medai:payment-required`
+  event, `App.tsx` switches to the billing screen, and the session is left untouched.
+
+Returning from checkout with `?billing=success` means *paid*, not *provisioned* —
+fulfilment is webhook-driven, so the billing screen polls the probe for a few seconds
+before rendering the unlocked state.
+
+Seats are bought, not grown: inviting past `seats_total` is refused rather than quietly
+resizing the subscription, because buying a seat is the owner's decision. Prices are per
+seat per month in minor units (kopiykas), UAH; the annual cycle bills twelve months up
+front. Invoice headers carry the ЄДРПОУ/ІПН that Ukrainian legal entities need.
 
 ## Verification
 
@@ -90,9 +137,10 @@ months up front. Invoice headers carry the ЄДРПОУ/ІПН that Ukrainian le
 - `npx tsx scripts/widget-smoke.ts` — SSR-renders every widget with realistic,
   malformed, and empty payloads (block payloads are LLM-generated and unvalidated
   server-side, so widgets must never trust the shape)
-- `npx tsx scripts/team-smoke.ts` — exercises the seat/owner/billing rules in
-  `src/api/team.ts`, SSR-renders both team screens, and checks that every English
-  message key has a Ukrainian string with the same `{placeholders}`
+- `npx tsx scripts/team-smoke.ts` — exercises the seat/owner/billing rules against the
+  offline stand-in in `src/api/teamFixtures.ts` (the live client speaks HTTP, which a
+  smoke test has no business needing), SSR-renders both team screens, and checks that
+  every English message key has a Ukrainian string with the same `{placeholders}`
 
 ## Streaming notes (matches the backend contract)
 

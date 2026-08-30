@@ -7,23 +7,62 @@ import type {
   UtteranceDto,
 } from "./types";
 
-/** The POC backend allows the dev-server origin via its CORS_ORIGINS setting. */
-const BASE = import.meta.env.VITE_API_BASE ?? "http://localhost:8000";
+/**
+ * The POC backend allows the dev-server origin via its CORS_ORIGINS setting.
+ *
+ * `import.meta.env` is optional-chained because the SSR smoke scripts load this
+ * module under tsx, where Vite's env shim does not exist.
+ */
+const BASE = import.meta.env?.VITE_API_BASE ?? "http://localhost:8000";
+
+/** Absolute URL for a backend path — for the `/start` routes the browser navigates to. */
+export function apiUrl(path: string): string {
+  return `${BASE}${path}`;
+}
 
 export class ApiRequestError extends Error {
   constructor(
     public readonly status: number,
     public readonly detail: string,
+    /**
+     * Interpolations for `detail` when it is an i18n message key rather than a
+     * sentence — the team/billing surface answers `{detail, params}`.
+     */
+    public readonly params?: Record<string, string | number>,
   ) {
     super(detail);
     this.name = "ApiRequestError";
   }
 }
 
+/** What `GET /auth/methods` answers — the sign-in page's whole shape. */
+export interface AuthMethods {
+  /** Email one-time code. Always available. */
+  otp: boolean;
+  /** WorkOS AuthKit is configured on the backend. */
+  sso: boolean;
+  /** false means AUTH_ENABLED=false — the gate is disarmed, skip the wall. */
+  required: boolean;
+  /**
+   * The deployment is corporate-login-only. Say so before the doctor types: an
+   * outside address gets the same 202 with no code ever arriving. It reveals
+   * only *that* a restriction exists, never the domain list.
+   */
+  restricted: boolean;
+}
+
 /** Fired when a clinical route answers 401 — the app swaps to the sign-in screen. */
 export const UNAUTHORIZED_EVENT = "medai:unauthorized";
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
+/**
+ * Fired when a clinical route answers 402 — the doctor is signed in correctly
+ * but the workspace has no subscription to work against, or their own seat is
+ * suspended. 402 is not 401: the session stays, only the surface is locked.
+ * `detail` carries the message key the backend sent.
+ */
+export const PAYMENT_REQUIRED_EVENT = "medai:payment-required";
+
+export async function request<T>(path: string, init?: RequestInit): Promise<T> {
   let response: Response;
   try {
     // The session is an HTTP-only cookie; every call must carry credentials.
@@ -40,7 +79,13 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
       body && typeof body.detail === "string"
         ? body.detail
         : `Request failed (${response.status})`;
-    throw new ApiRequestError(response.status, detail);
+    // The billing routes are the answer to a 402, so they never raise one.
+    if (response.status === 402 && !path.startsWith("/billing")) {
+      window.dispatchEvent(new CustomEvent(PAYMENT_REQUIRED_EVENT, { detail }));
+    }
+    const params =
+      body && body.params && typeof body.params === "object" ? body.params : undefined;
+    throw new ApiRequestError(response.status, detail, params);
   }
   return body as T;
 }
@@ -64,7 +109,22 @@ export const api = {
     return postJson("/auth/otp/verify", { email, code });
   },
 
-  logout(): Promise<{ status: string }> {
+  /**
+   * What the sign-in page may offer. `sso` is false wherever the deployment has
+   * no WorkOS credentials, and `/auth/sso/start` 404s there — so the button is
+   * rendered from this answer, never from a guess.
+   */
+  authMethods(): Promise<AuthMethods> {
+    return request<AuthMethods>("/auth/methods");
+  },
+
+  /**
+   * Our session dies server-side either way. `sign_out_url` is non-empty only
+   * while an identity provider still holds a session of its own, and the
+   * browser has to go there: skip it and the next person at a shared clinic
+   * workstation is silently let back in as the doctor who just left.
+   */
+  logout(): Promise<{ status: string; sign_out_url: string }> {
     return postJson("/auth/logout");
   },
 

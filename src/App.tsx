@@ -1,5 +1,12 @@
 import { useEffect, useState } from "react";
-import { UNAUTHORIZED_EVENT, api } from "./api/client";
+import { PAYMENT_REQUIRED_EVENT, UNAUTHORIZED_EVENT, api } from "./api/client";
+import {
+  initialsOf,
+  loadProfile,
+  saveProfile,
+  type DoctorProfile,
+} from "./api/profile";
+import { Alert } from "./design/feedback/Alert";
 import { Badge } from "./design/data/Badge";
 import { Button } from "./design/forms/Button";
 import { BillingScreen } from "./app/BillingScreen";
@@ -9,22 +16,17 @@ import {
   openTranscriptSession,
 } from "./app/ConsultationScreen";
 import { HistoryNav } from "./app/HistoryNav";
+import { ProfileSetupScreen, ROLE_LABEL } from "./app/ProfileSetupScreen";
 import { SettingsScreen } from "./app/SettingsScreen";
 import { SignInScreen } from "./app/SignInScreen";
 import { TeamScreen } from "./app/TeamScreen";
 import { useT } from "./i18n";
+import { en, type MessageKey } from "./i18n/strings";
 
 type AuthState = "unknown" | "anonymous" | "authenticated";
 type View = "consultation" | "team" | "billing" | "settings";
 
 const PROFILE_KEY = "medai-profile-email";
-
-function initialsOf(email: string | null): string {
-  if (!email) return "MD";
-  const parts = email.split("@")[0].split(/[._-]+/).filter(Boolean);
-  const letters = parts.slice(0, 2).map((p) => p[0].toUpperCase());
-  return letters.join("") || "MD";
-}
 
 function NavItem({
   label,
@@ -63,12 +65,20 @@ export function App() {
   const [auth, setAuth] = useState<AuthState>("unknown");
   const [view, setView] = useState<View>("consultation");
   const [email, setEmail] = useState<string | null>(() => localStorage.getItem(PROFILE_KEY));
+  // Name and clinical role, keyed to the account. Null means this doctor has
+  // not finished joining yet — the setup step stands between them and the app.
+  const [profile, setProfile] = useState<DoctorProfile | null>(() =>
+    loadProfile(localStorage.getItem(PROFILE_KEY)),
+  );
   // Remount key for ConsultationScreen — it rehydrates from the stored session
   // on mount, so bumping this after a session change swaps the open transcript.
   const [consultKey, setConsultKey] = useState(0);
   // Set when the team screen sends the reader to billing to buy seats, so the
   // billing screen opens on the plan dialog instead of making them hunt for it.
   const [billingSeatFocus, setBillingSeatFocus] = useState(false);
+  // Set when a clinical route answers 402: the session is fine, the surface is
+  // not paid for. Holds the key the backend sent so the reason is the real one.
+  const [paywall, setPaywall] = useState<MessageKey | null>(null);
 
   const openView = (next: View) => {
     setBillingSeatFocus(false);
@@ -95,26 +105,56 @@ export function App() {
   useEffect(() => {
     api.probeAuth().then((ok) => setAuth(ok ? "authenticated" : "anonymous"));
     const onUnauthorized = () => setAuth("anonymous");
+    // 402 is not 401: the session is untouched, the reader is sent to billing.
+    const onPaymentRequired = (event: Event) => {
+      const detail = (event as CustomEvent<string>).detail;
+      setPaywall(
+        typeof detail === "string" && detail in en
+          ? (detail as MessageKey)
+          : "billing.error.required",
+      );
+      setView("billing");
+    };
     window.addEventListener(UNAUTHORIZED_EVENT, onUnauthorized);
-    return () => window.removeEventListener(UNAUTHORIZED_EVENT, onUnauthorized);
+    window.addEventListener(PAYMENT_REQUIRED_EVENT, onPaymentRequired);
+    return () => {
+      window.removeEventListener(UNAUTHORIZED_EVENT, onUnauthorized);
+      window.removeEventListener(PAYMENT_REQUIRED_EVENT, onPaymentRequired);
+    };
   }, []);
 
   const signedIn = (address: string) => {
     if (address) {
       localStorage.setItem(PROFILE_KEY, address);
       setEmail(address);
+      // A doctor who has signed in here before keeps their name and role; a new
+      // one falls through to the setup step below.
+      setProfile(loadProfile(address));
     }
     setAuth("authenticated");
   };
 
+  const profileDone = (next: DoctorProfile) => {
+    saveProfile(email, next);
+    setProfile(next);
+  };
+
   const signOut = async () => {
+    let signOutUrl = "";
     try {
-      await api.logout();
+      signOutUrl = (await api.logout()).sign_out_url;
     } finally {
       localStorage.removeItem(PROFILE_KEY);
       setEmail(null);
+      // The stored profile stays: it is keyed to the account, so signing back
+      // in restores it, and another doctor's account never reads it.
+      setProfile(null);
       setAuth("anonymous");
     }
+    // Set only while the identity provider still holds a session of its own.
+    // Ending it is what stops the next doctor at this workstation being signed
+    // straight back in as the last one; WorkOS returns the browser to the app.
+    if (signOutUrl) window.location.assign(signOutUrl);
   };
 
   if (auth !== "authenticated") {
@@ -127,6 +167,17 @@ export function App() {
             {t("app.connecting")}
           </div>
         )}
+      </div>
+    );
+  }
+
+  // Registration finishes here, not at the code prompt. Skipped when there is
+  // no account to key a profile to — the gate is disarmed, or SSO landed the
+  // browser back without the app learning an address.
+  if (email && !profile) {
+    return (
+      <div style={{ minHeight: "100%", background: "var(--surface-page)", fontFamily: "var(--font-ui)" }}>
+        <ProfileSetupScreen email={email} onDone={profileDone} />
       </div>
     );
   }
@@ -239,7 +290,7 @@ export function App() {
               fontSize: "var(--text-sm)",
             }}
           >
-            {initialsOf(email)}
+            {initialsOf(profile, email)}
           </span>
           <span style={{ display: "flex", flexDirection: "column", minWidth: 0, flex: 1 }}>
             <span
@@ -253,10 +304,10 @@ export function App() {
               }}
               title={email ?? undefined}
             >
-              {email ?? t("profile.local")}
+              {profile?.name ?? email ?? t("profile.local")}
             </span>
             <span style={{ fontSize: "var(--text-xs)", color: "var(--text-tertiary)" }}>
-              {t("profile.role")}
+              {profile ? t(ROLE_LABEL[profile.role]) : t("profile.role")}
             </span>
           </span>
         </div>
@@ -280,8 +331,23 @@ export function App() {
           {view === "team" && (
             <TeamScreen currentEmail={email} onManageSeats={openSeatPurchase} />
           )}
-          {view === "billing" && <BillingScreen openPlanOnMount={billingSeatFocus} />}
-          {view === "settings" && <SettingsScreen />}
+          {view === "billing" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              {paywall && (
+                <Alert
+                  tone="warning"
+                  title={t("billing.paywall.title")}
+                  onDismiss={() => setPaywall(null)}
+                >
+                  {t(paywall)}
+                </Alert>
+              )}
+              <BillingScreen openPlanOnMount={billingSeatFocus} />
+            </div>
+          )}
+          {view === "settings" && (
+            <SettingsScreen profile={profile} onProfileChange={profileDone} />
+          )}
         </main>
         <footer
           style={{
